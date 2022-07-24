@@ -327,7 +327,9 @@ p <- plot_trend(pred_sim,
 
 p
 
-save_ggplot("macrodistancing_effect.png")
+save_ggplot("macrodistancing_effect.png",
+            width = 11.69 / 1.5,
+            height = 8.27 / 2.5)
 
 
 p <- plot_trend(pred_sim,
@@ -405,7 +407,9 @@ p <- plot_trend(pred_sim,
 
 p
 
-save_ggplot("macrodistancing_effect_no_data_vis.png")
+save_ggplot("macrodistancing_effect_no_data_vis.png",
+            width = 11.69 / 1.5,
+            height = 8.27 / 2.5)
 
 # non-household contacts
 p <- plot_trend(pred_sim,

@@ -293,7 +293,9 @@ p <- ggplot(line_df) +
 p
 
 
-save_ggplot("microdistancing_effect.png")
+save_ggplot("microdistancing_effect.png",
+            width = 11.69 / 1.5,
+            height = 8.27 / 2.5)
 
 
 
@@ -365,7 +367,9 @@ p <- ggplot(line_df) +
 p
 
 
-save_ggplot("microdistancing_effect_no_data_vis.png")
+save_ggplot("microdistancing_effect_no_data_vis.png",
+            width = 11.69 / 1.5,
+            height = 8.27 / 2.5)
 
 
 p <- ggplot(line_df) +
