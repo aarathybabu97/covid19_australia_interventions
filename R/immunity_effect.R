@@ -267,8 +267,8 @@ ggsave(
     data_date_save
   ),
   dpi = dpi,
-  width = 1500 / dpi,
-  height = 1250 / dpi,
+  width = 1750 / dpi,
+  height = 1500 / dpi,
   scale = 1.2,
   bg = "white"
 )
@@ -989,7 +989,91 @@ ggsave(
   bg = "white"
 )
 
+# dropping 75 ascertainment and plotting from April 2021
+combined_effect_timeseries_full %>%
+  filter(variant %in% c("Omicron BA2","Omicron BA4/5"), date <= data_date) %>%
+  filter(ascertainment!=0.75)%>%
+  mutate(ascertainment = as.character(ascertainment)) %>% 
+  ggplot() +
+  geom_line(
+aes(
+    x = date,
+    y = effect,
+    colour = state,
+    alpha = variant
+  ),
+size = 1
+) +
+  theme_classic() +
+  labs(
+    x = NULL,
+    y = "Change in transmission potential",
+    col = NULL,
+    alpha = "Omicron sub-variant",
+  ) +
+  scale_x_date(
+    # breaks = ie_short_labels$ticks,
+    # labels = ie_short_labels$labels
+    date_breaks = "month",
+    date_labels = "%b%y"
+  ) +
+  ggtitle(
+    label = "Immunity effect",
+    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and infection with Omicron BA2 sub-variant, \nassuming 50% case ascertainment"
+  ) +
+  cowplot::theme_cowplot() +
+  cowplot::panel_border(remove = TRUE) +
+  theme(
+    strip.background = element_blank(),
+    axis.title.y.right = element_text(vjust = 0.5, angle = 90, size = font_size),
+    legend.position = c(0.0, 0.3),
+    #legend.position = c(0.02, 0.18),
+    legend.text = element_text(size = font_size-2),
+    axis.text = element_text(size = 10),
+    plot.title = element_text(size = font_size + 8),
+    plot.subtitle = element_text(size = font_size)
+  ) +
+  scale_colour_manual(
+    values = c(
+      "darkgray",
+      "cornflowerblue",
+      "chocolate1",
+      "violetred4",
+      "red1",
+      "darkgreen",
+      "darkblue",
+      "gold1"
+    )
+  ) +
+  guides(colour = "none") +
+  scale_alpha_manual(values = c(0.5,1)) +
+  scale_linetype_manual(values = c("dashed","solid")) + 
+  scale_y_continuous(
+    position = "right",
+    limits = c(0, 1),
+    breaks = seq(0, 1, by = 0.1)
+  ) +
+  geom_vline(
+    aes(
+      xintercept = data_date
+    )
+  ) +
+  facet_wrap(~state, ncol = 2) 
 
+
+
+
+ggsave(
+  filename = sprintf(
+    "outputs/figures/combined_effect_short_without_75_asc_%s.png",
+    data_date_save
+  ),
+  dpi = dpi,
+  width = 2650 / dpi,
+  height = 1550 / dpi,
+  scale = 1.2,
+  bg = "white"
+)
 
 
 combined_effect_timeseries_hosp %>%
