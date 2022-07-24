@@ -134,7 +134,7 @@ source("R/immunity_effect.R") #[~1hr]
 # Moss ( r_eff_12_local_samples_soft_clamped_50.csv, r_eff_1_local_samples.csv,
 # r_eff_12_local_samples.csv, r_eff_12_local_samples_soft_clamped_95.csv in both
 # outputs/ and outputs/projection/) [~1-2h]
-source("R/R_effective.R")
+source("R/R_effective.R") # ~13h for Reff model. model-weekly tp csv for unsw : ~3h
 ## - figures, samples as above, plus wt, alpha and delta, and
 # outputs/output_dates.csv to dropbox/Freya
 # tp_novax emailed to alexandra.hogan@unsw.edu.au,flynn.hill@health.nsw.gov.au & probably also good to cc james.wood@unsw.edu.au
