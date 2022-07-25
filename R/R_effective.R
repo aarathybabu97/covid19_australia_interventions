@@ -158,9 +158,9 @@ simulate_variant(variant = "omicron", subdir = "omicron/ratio", ratio_samples = 
 
 simulate_variant(
   variant = "omicron",
-  subdir = "omicron_BA2_vax",
+  subdir = "omicron_vax",
   vax_effect = vaccine_effect_timeseries %>%
-    filter(variant == "Omicron BA2",
+    filter(variant == "Omicron",
            date <= max(fitted_model$data$dates$infection_project)) %>%
     select(-variant,-percent_reduction)
 )
@@ -204,10 +204,10 @@ combined_effect_timeseries_full <- readRDS("outputs/combined_effect_full.RDS")
 
 simulate_variant(
   variant = "omicron",
-  subdir = "omicron_BA2_combined/",
+  subdir = "omicron_combined/",
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
-      variant == "Omicron BA2", 
+      variant == "Omicron", 
       date <= max(fitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
@@ -263,7 +263,7 @@ no_vax_or_infection_immunity_c1 <- read_csv(paste0("outputs/projection/r_eff_1_l
 
 
 #ba2 vs ba4
-BA2_TP <- read_csv(paste0("outputs/projection/omicron_BA2_combined/r_eff_1_local_samples.csv"),
+BA2_TP <- read_csv(paste0("outputs/projection/omicron_combined/r_eff_1_local_samples.csv"),
                    col_types =cols(
                      .default = col_double(),
                      date = col_date(format = ""),
