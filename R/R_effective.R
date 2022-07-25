@@ -160,7 +160,7 @@ simulate_variant(
   variant = "omicron",
   subdir = "omicron_vax",
   vax_effect = vaccine_effect_timeseries %>%
-    filter(variant == "Omicron",
+    filter(variant == "Omicron BA2",
            date <= max(fitted_model$data$dates$infection_project)) %>%
     select(-variant,-percent_reduction)
 )
@@ -207,7 +207,7 @@ simulate_variant(
   subdir = "omicron_combined/",
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
-      variant == "Omicron", 
+      variant == "Omicron BA2", 
       date <= max(fitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
