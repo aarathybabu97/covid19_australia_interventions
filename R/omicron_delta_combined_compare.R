@@ -49,7 +49,7 @@ omicron_no_vax <- read_csv(paste0("outputs/projection/omicron/r_eff_1_local_samp
 #                     date_onset = col_date(format = "")
 #                   )) 
 
-omicron_BA2_vax <- read_csv(paste0("outputs/projection/omicron_BA2_vax/r_eff_1_local_samples.csv"),
+omicron_BA2_vax <- read_csv(paste0("outputs/projection/omicron_vax/r_eff_1_local_samples.csv"),
                         col_types =cols(
                           .default = col_double(),
                           date = col_date(format = ""),
@@ -57,7 +57,7 @@ omicron_BA2_vax <- read_csv(paste0("outputs/projection/omicron_BA2_vax/r_eff_1_l
                           date_onset = col_date(format = "")
                         )) 
 
-omicron_BA2_combined <- read_csv(paste0("outputs/projection/omicron_BA2_combined/r_eff_1_local_samples.csv"),
+omicron_BA2_combined <- read_csv(paste0("outputs/projection/omicron_combined/r_eff_1_local_samples.csv"),
                         col_types =cols(
                           .default = col_double(),
                           date = col_date(format = ""),
