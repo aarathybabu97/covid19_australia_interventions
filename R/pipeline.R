@@ -70,6 +70,10 @@ linelist$date_onset[(linelist$state == "SA" & linelist$date_onset >= as_date("20
 min_date <- min(linelist$date_confirmation)
 max_date <- max(linelist$date_confirmation)
 
+#remove ddubious SA confirmation dates
+linelist <- linelist %>% filter(date_confirmation >= "2020-01-23")
+
+
 saveRDS(
   linelist,
   sprintf(

@@ -785,7 +785,7 @@ combined_and_vax_timeseries <- bind_rows(
 
 # immunity effect plots ------
 
-combined_effect_timeseries %>%
+combined_effect_timeseries_full %>%
   filter(variant %in% c("Omicron BA2","Omicron BA4/5"), 
          date <= data_date) %>%
   mutate(ascertainment = as.character(ascertainment)) %>%
