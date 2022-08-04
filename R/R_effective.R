@@ -34,7 +34,9 @@ write_local_cases(data)
 #update_past_cases()
 
 # define the model (and greta arrays) for Reff, and sample until convergence
-fitted_model <- fit_reff_model(data)
+fitted_model <- fit_reff_model(data,
+                               iterations_per_step = 1500,
+                               warmup = 500)
 
 # save the fitted model object
 saveRDS(fitted_model, "outputs/fitted_reff_model.RDS")
@@ -82,7 +84,7 @@ reff_plotting(
   fitted_model,
   dir = "outputs",
   subdir = "figures/one_month",
-  min_date = fitted_model$data$dates$latest_mobility - months(1),
+  min_date = fitted_model$data$dates$latest_mobility - days(30),
   sims = sims
 )
 
@@ -92,7 +94,7 @@ reff_plotting(
   fitted_model,
   dir = "outputs",
   subdir = "figures/one_month/no_nowcast",
-  min_date = fitted_model$data$dates$latest_mobility - months(1),
+  min_date = fitted_model$data$dates$latest_mobility - days(30),
   max_date = fitted_model$data$dates$latest_infection,
   sims = sims,
   mobility_extrapolation_rectangle = FALSE
