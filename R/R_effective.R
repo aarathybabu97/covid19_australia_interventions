@@ -14,6 +14,8 @@ linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = old_delay_cdf)
+ #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
+# data[["detection_prob_mat"]][919:920,4] <- 0.93
 #reload data here to get the latest vaccine effect, which is typically computed after linelist
 
 #data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
@@ -92,7 +94,7 @@ reff_plotting(
   fitted_model,
   dir = "outputs",
   subdir = "figures/one_month/no_nowcast",
-  min_date = fitted_model$data$dates$latest_mobility - months(1),
+  min_date = fitted_model$data$dates$latest_mobility %m-% months(1),
   max_date = fitted_model$data$dates$latest_infection,
   sims = sims,
   mobility_extrapolation_rectangle = FALSE
