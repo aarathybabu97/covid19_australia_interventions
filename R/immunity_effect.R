@@ -79,7 +79,7 @@ saveRDS(
   )
 )
 
-#vaccine_state <- readRDS("outputs/vaccine_state_20220606.RDS")
+#vaccine_state <- readRDS("outputs/vaccine_state_20220802.RDS")
 
 date_sequence <- seq.Date(
   from = as.Date("2021-02-22"),
@@ -180,6 +180,7 @@ saveRDS(
   file = "outputs/vaccination_effect.RDS"
 )
 
+#vaccination_effect_timeseries <- readRDS("outputs/vaccination_effect.RDS")
 # vaccination effect plots --------
 dpi <- 150
 font_size <- 12
@@ -401,7 +402,7 @@ ve_tables %>%
   cowplot::theme_cowplot() +
   cowplot::panel_border(remove = TRUE) +
   
-  scale_x_date(breaks = seq(ymd("2021-01-01"), ymd("2023-01-01"), by = "3 months"),
+  scale_x_date(breaks = seq(ymd("2021-01-01"), ymd("2023-01-01"), by = "2 months"),
                labels = scales::label_date_short(format = c("%Y", "%b")),
                expand = expansion(mult = c(0, 0.05))) +
   
@@ -472,7 +473,7 @@ vaccination_effect_timeseries_hosp %>%
   cowplot::theme_cowplot() +
   cowplot::panel_border(remove = TRUE) +
   
-  scale_x_date(breaks = seq(ymd("2021-01-01"), ymd("2023-01-01"), by = "3 months"),
+  scale_x_date(breaks = seq(ymd("2021-01-01"), ymd("2023-01-01"), by = "2 months"),
                labels = scales::label_date_short(format = c("%Y", "%b")),
                expand = expansion(mult = c(0, 0.05))) +
   
@@ -815,15 +816,15 @@ combined_effect_timeseries %>%
   ) +
   ggtitle(
     label = "Immunity effect",
-    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and infection with Omicron BA2 sub-variant, \nassuming 50% case ascertainment"
+    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and infection with Omicron BA2 sub-variant"
   ) +
   cowplot::theme_cowplot() +
   cowplot::panel_border(remove = TRUE) +
   theme(
     strip.background = element_blank(),
     axis.title.y.right = element_text(vjust = 0.5, angle = 90, size = font_size),
-    legend.position = c(0.0, 0.15),
-    #legend.position = c(0.02, 0.18),
+    # legend.position = c(0.0, 0.15),
+    legend.position = "bottom",
     legend.text = element_text(size = font_size-2),
     axis.text = element_text(size = font_size),
     plot.title = element_text(size = font_size + 8),
@@ -843,7 +844,7 @@ combined_effect_timeseries %>%
   ) +
   guides(colour = "none") +
   scale_alpha_manual(values = c(0.5,1)) +
-  scale_linetype_manual(values = c("dashed","solid")) + 
+  scale_linetype_manual("Omicron sub-variant", values = c("dotted","solid" )) +
   scale_y_continuous(
     position = "right",
     limits = c(0, 1),
@@ -854,7 +855,8 @@ combined_effect_timeseries %>%
       xintercept = data_date
     )
   ) +
-  facet_wrap(~state, ncol = 2) 
+  facet_wrap(~state, ncol = 2)
+# +
 # +
 #   geom_line(
 #     data = vaccination_effect_timeseries %>%
@@ -881,6 +883,97 @@ ggsave(
   scale = 1.2,
   bg = "white"
 )
+
+
+combined_effect_timeseries_full  %>%
+  filter(variant %in% c("Omicron BA2","Omicron BA4/5"), 
+         date <= data_date) %>%
+  mutate(ascertainment = as.character(ascertainment)) %>%
+  ggplot() +
+  geom_line(
+    aes(
+      x = date,
+      y = effect,
+      colour = state,
+      linetype = variant,
+      alpha = ascertainment
+    ),
+    size = 1
+  ) +
+  theme_classic() +
+  labs(
+    x = NULL,
+    y = "Change in transmission potential",
+    #col = "State",
+    colour = NULL,
+    alpha = "Ascertainment rate",
+    linetype = "Sub-variant"#"Case\nascertainment\nproportion"
+  ) +
+  scale_x_date(
+    breaks = ve_ticks_labels$ticks,
+    labels = ve_ticks_labels$labels
+  ) +
+  ggtitle(
+    label = "Immunity effect",
+    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and infection with Omicron BA2 sub-variant"
+  ) +
+  cowplot::theme_cowplot() +
+  cowplot::panel_border(remove = TRUE) +
+  theme(
+    strip.background = element_blank(),
+    axis.title.y.right = element_text(vjust = 0.5, angle = 90, size = font_size),
+    legend.position = "bottom",
+    #  legend.position = c(0.02, 0.35),
+    legend.text = element_text(size = font_size-2),
+    axis.text = element_text(size = font_size),
+    plot.title = element_text(size = font_size + 8),
+    plot.subtitle = element_text(size = font_size)
+  ) +
+  scale_colour_manual(
+    values = c(
+      "darkgray",
+      "cornflowerblue",
+      "chocolate1",
+      "violetred4",
+      "red1",
+      "darkgreen",
+      "darkblue",
+      "gold1"
+    ),
+  ) +
+  guides(colour = "none") +
+  # scale_alpha_manual(values = c(0.5,1)) +
+  # scale_linetype_manual(values = c("dashed","solid")) + 
+  scale_linetype_manual("Omicron sub-variant", values = c("dotted","solid" )) +
+  scale_alpha_manual("Ascertainment", values = c(0.4, 1)) +
+  scale_y_continuous(
+    position = "right",
+    limits = c(0, 1),
+    breaks = seq(0, 1, by = 0.1)
+  ) +
+  geom_vline(
+    aes(
+      xintercept = data_date
+    )
+  ) +
+  facet_wrap(~state, ncol = 2) +
+  
+  scale_x_date(breaks = seq(ymd("2021-01-01"), ymd("2023-01-01"), by = "2 months"),
+               labels = scales::label_date_short(format = c("%Y", "%b")),
+               expand = expansion(mult = c(0, 0.05)))
+
+ggsave(
+  filename = sprintf(
+    "outputs/figures/combined_effect_full_long_%s.png",
+    data_date_save
+  ),
+  dpi = dpi,
+  width = 1500 / dpi,
+  height = 1250 / dpi,
+  scale = 1.2,
+  bg = "white"
+)
+
 
 
 ie_short_labels <- split_ticks_and_labels(
@@ -923,15 +1016,16 @@ combined_effect_timeseries %>%
   ) +
   ggtitle(
     label = "Immunity effect",
-    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and infection with Omicron BA2 sub-variant, \nassuming 50% case ascertainment"
+    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and infection with Omicron BA2 sub-variant"
   ) +
   cowplot::theme_cowplot() +
   cowplot::panel_border(remove = TRUE) +
   theme(
     strip.background = element_blank(),
     axis.title.y.right = element_text(vjust = 0.5, angle = 90, size = font_size),
-    legend.position = c(0.0, 0.1),
+    #legend.position = c(0.0, 0.1),
     #legend.position = c(0.02, 0.18),
+    legend.position = "bottom",
     legend.text = element_text(size = font_size-2),
     axis.text = element_text(size = font_size),
     plot.title = element_text(size = font_size + 8),
@@ -951,7 +1045,7 @@ combined_effect_timeseries %>%
   ) +
   guides(colour = "none") +
   scale_alpha_manual(values = c(0.5,1)) +
-  scale_linetype_manual(values = c("dashed","solid")) + 
+  scale_linetype_manual("Omicron sub-variant", values = c("dotted","solid" )) +
   scale_y_continuous(
     position = "right",
     limits = c(0, 1),
@@ -1047,7 +1141,7 @@ size = 1
   ) +
   guides(colour = "none") +
   scale_alpha_manual(values = c(0.5,1)) +
-  scale_linetype_manual(values = c("dashed","solid")) + 
+  scale_linetype_manual("Omicron sub-variant", values = c("dotted","solid" )) +
   scale_y_continuous(
     position = "right",
     limits = c(0, 1),
@@ -1058,7 +1152,11 @@ size = 1
       xintercept = data_date
     )
   ) +
-  facet_wrap(~state, ncol = 2) 
+  facet_wrap(~state, ncol = 2) +
+  
+  scale_x_date(breaks = seq(ymd("2021-01-01"), ymd("2023-01-01"), by = "2 months"),
+               labels = scales::label_date_short(format = c("%Y", "%b")),
+               expand = expansion(mult = c(0, 0.05)))
 
 
 
@@ -1068,9 +1166,10 @@ ggsave(
     "outputs/figures/combined_effect_short_without_75_asc_%s.png",
     data_date_save
   ),
+  
   dpi = dpi,
-  width = 2650 / dpi,
-  height = 1550 / dpi,
+  width = 1500 / dpi,
+  height = 1250 / dpi,
   scale = 1.2,
   bg = "white"
 )
@@ -1078,7 +1177,7 @@ ggsave(
 
 combined_effect_timeseries_hosp %>%
   ggplot() +
-  geom_line(aes(x = date, y = m_hosp, linetype = variant, alpha = factor(ascertainment)),
+  geom_line(aes(x = date, y = m_hosp, linetype = variant,size=variant, alpha = factor(ascertainment)),
             color = "#0072B2")  +
   geom_line(aes(x = date, y = m_hosp, linetype = variant),
             color = 'black',
@@ -1096,12 +1195,13 @@ combined_effect_timeseries_hosp %>%
   facet_wrap(~state, ncol = 2) +
   xlab(NULL) + ylab("Change in probability of hospitalisation") +
   
-  scale_linetype_manual("Omicron sub-variant", values = c(1, 2)) +
+  scale_linetype_manual("Omicron sub-variant", values = c("dotted","solid" )) +
+  scale_size_manual(values = c( 1.25,0.5))+
   scale_alpha_manual("Ascertainment", values = c(0.4, 1)) +
   cowplot::theme_cowplot() +
   cowplot::panel_border(remove = TRUE) +
   
-  scale_x_date(breaks = seq(ymd("2021-01-01"), ymd("2023-01-01"), by = "3 months"),
+  scale_x_date(breaks = seq(ymd("2021-01-01"), ymd("2023-01-01"), by = "2 months"),
                labels = scales::label_date_short(format = c("%Y", "%b")),
                expand = expansion(mult = c(0, 0.05))) +
   
@@ -1109,9 +1209,9 @@ combined_effect_timeseries_hosp %>%
     strip.background = element_blank(),
     strip.text = element_text(hjust = 0, face = "bold"),
     axis.title.y.right = element_text(vjust = 0.5, angle = 90),
-    panel.spacing = unit(1.2, "lines"),
+    panel.spacing = unit(1.05, "lines"),
     legend.position = "bottom"
-  ) 
+  ) + guides( size = "none")
 
 ggsave(
   filename = sprintf(
@@ -1119,7 +1219,7 @@ ggsave(
     data_date_save
   ),
   dpi = dpi,
-  width = 1200 / dpi,
+  width = 1210 / dpi,
   height = 1250 / dpi,
   scale = 1.2,
   bg = "white"
