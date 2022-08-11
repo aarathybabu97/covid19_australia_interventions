@@ -171,7 +171,10 @@ old_delay_cdf <- readRDS("~/covid19_australia_interventions/outputs/old_method_d
 # run get_nsw_linelist to get the new NSW data, 
 # remove any NSW cases in the old regular linelist and put in the new NSW data
 
-regular_ll <- readRDS("~/covid19_australia_interventions/outputs/linelist_20220726.RDS")
+regular_ll <- readRDS("~/covid19_australia_interventions/outputs/linelist_20220809.RDS")
+
+#sanity check against dubious dates
+regular_ll <- regular_ll %>% filter(date_confirmation >= "2020-01-01")
 
 linelist_commonwealth$import_status <- "local"
 
