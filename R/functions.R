@@ -6809,11 +6809,10 @@ write_local_cases <- function(model_data, dir = "outputs") {
     count = as.vector(model_data$local$cases_infectious)*as.vector(model_data$dow_effect),
     acquired_in_state = as.vector(model_data$local$cases),
     dow_effect = as.vector(model_data$dow_effect)
-  ) %>%
-    write.csv(
-      file.path(dir, "local_cases_input.csv"),
-      row.names = FALSE
-    )
+  )%>% write.csv(
+    file.path(dir,paste0("local_cases_input_", format(Sys.time(), "%Y-%m-%d"), ".csv")),
+    row.names = FALSE
+  )
   
 }
 
