@@ -14,7 +14,9 @@ linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = NULL,
-                        start_date = as_date("2021-06-01"))
+                        start_date = as_date("2021-06-01")
+)
+#data[["valid_mat"]][c(429,430),"QLD"] <- FALSE
 #normally start from 2021-06-01 as per Rob M's request
 
 #check data date
@@ -54,10 +56,10 @@ fitted_TP_calculations_draws <- calculate(R_eff_imp_1,
 #summarise TP samples for reff model
 predicted_TP_obj <- list(R_eff_imp_1 = apply(fitted_TP_calculations_draws$R_eff_imp_1,
                                              2:3,
-                                             mean),
+                                             FUN="mean"),
                          R_eff_loc_1 = apply(fitted_TP_calculations_draws$R_eff_loc_1,
                                              2:3,
-                                             mean),
+                                             FUN="mean"),
                          log_R0 = fitted_TP_calculations$log_R0,
                          log_Qt = fitted_TP_calculations$log_Qt,
                          distancing_effect = fitted_TP_calculations$distancing_effect,
@@ -109,8 +111,8 @@ sims_TP <- reff_plotting_sims(fitted_model,
                               plot_reff_trajectory = FALSE)
 
 sims_reff <- reff_plotting_sims(refitted_model,
-                              plot_TP_trajectory = FALSE,
-                              plot_reff_trajectory = TRUE)
+                                plot_TP_trajectory = FALSE,
+                                plot_reff_trajectory = TRUE)
 
 
 sims <- c(sims_reff,sims_TP)
@@ -205,6 +207,7 @@ simulate_variant(
   subdir = "omicron_vax",
   vax_effect = vaccine_effect_timeseries %>% 
     filter(variant == "Omicron BA2", 
+           date>=as_date("2021-06-01"),
            date <= max(refitted_model$data$dates$infection_project)) %>% 
     select(-variant,-percent_reduction)
 )
@@ -215,6 +218,7 @@ simulate_variant(
   subdir = "delta_vax",
   vax_effect = vaccine_effect_timeseries %>% 
     filter(variant == "Delta", 
+           date>=as_date("2021-06-01"),
            date <= max(refitted_model$data$dates$infection_project)) %>% 
     select(-variant,-percent_reduction)
 )
@@ -222,9 +226,10 @@ simulate_variant(
 
 simulate_variant(
   variant = "omicron",
-  subdir = "omicron_BA4_vax",
+  subdir = "omicron_BA4.5_vax",
   vax_effect = vaccine_effect_timeseries %>% 
     filter(variant == "Omicron BA4/5", 
+           date>=as_date("2021-06-01"),
            date <= max(refitted_model$data$dates$infection_project)) %>% 
     select(-variant,-percent_reduction)
 )
@@ -241,6 +246,7 @@ simulate_variant(
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
       variant == "Omicron BA2", 
+      date>=as_date("2021-06-01"),
       date <= max(refitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
@@ -254,6 +260,7 @@ simulate_variant(
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
       variant == "Delta", 
+      date>=as_date("2021-06-01"),
       date <= max(refitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
@@ -262,10 +269,11 @@ simulate_variant(
 
 simulate_variant(
   variant = "omicron",
-  subdir = "omicron_BA4_combined/",
+  subdir = "omicron_BA4.5_combined/",
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
       variant == "Omicron BA4/5", 
+      date>=as_date("2021-06-01"),
       date <= max(refitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
@@ -278,7 +286,7 @@ source("R/omicron_delta_combined_compare.R")
 no_infection_immunity_c1 <- read_csv(paste0("outputs/projection/r_eff_1_local_samples.csv"),
                                      col_types =cols(
                                        .default = col_double(),
-                                       date = col_date(format = ""),
+                                       date3 = col_date(format = ""),
                                        state = col_character(),
                                        date_onset = col_date(format = "")
                                      )) 
@@ -292,13 +300,13 @@ no_vax_or_infection_immunity_c1 <- read_csv(paste0("outputs/projection/r_eff_1_l
                                             )) 
 
 #ba2 vs ba4
-BA2_TP <- read_csv(paste0("outputs/projection/omicron_BA2_combined/r_eff_1_local_samples.csv"),
-                                     col_types =cols(
-                                       .default = col_double(),
-                                       date = col_date(format = ""),
-                                       state = col_character(),
-                                       date_onset = col_date(format = "")
-                                     )) 
+BA2_TP <- read_csv(paste0("outputs/projection/omicron_combined/r_eff_1_local_samples.csv"),
+                   col_types =cols(
+                     .default = col_double(),
+                     date = col_date(format = ""),
+                     state = col_character(),
+                     date_onset = col_date(format = "")
+                   )) 
 
 BA4_TP <- read_csv(paste0("outputs/projection/omicron_BA4.5_combined/r_eff_1_local_samples.csv"),
                    col_types =cols(
@@ -310,7 +318,7 @@ BA4_TP <- read_csv(paste0("outputs/projection/omicron_BA4.5_combined/r_eff_1_loc
 
 
 #plot 
-start.date <- ymd("2021-02-01")
+start.date <- ymd("2021-06-01")
 end.date <- Sys.Date()
 vacc.start <- ymd("2021-02-22")
 date.label.format <- "%b %y"
@@ -401,8 +409,8 @@ ggplot() +
   #   colour = "firebrick1",
   #   linetype = 5
   # ) +
-  
-  geom_vline(xintercept = vacc.start, colour = "steelblue3", linetype = 5) +
+
+geom_vline(xintercept = vacc.start, colour = "steelblue3", linetype = 5) +
   
   facet_wrap(~state, ncol = 2, scales = "free") +
   
@@ -422,12 +430,12 @@ ggplot() +
         # axis.text.x = element_text(angle = 45, hjust = 1),
         axis.text.x = element_text(size = 9),
         panel.spacing = unit(1.2, "lines")) #+ 
-  # geom_vline(
-  #   data = prop_variant_dates(),
-  #   aes(xintercept = date),
-  #   colour = "firebrick1",
-  #   linetype = 5
-  # )
+# geom_vline(
+#   data = prop_variant_dates(),
+#   aes(xintercept = date),
+#   colour = "firebrick1",
+#   linetype = 5
+# )
 
 ggsave(paste0("outputs/figures/full_tp_compare_",end.date,"_BA4.png"), height = 10, width = 9, bg = "white")
 
@@ -447,11 +455,11 @@ write_csv(
 
 #get TP without immunity
 TP_no_vax <- reff_1_without_vaccine(fitted_model, vaccine_effect = as_tibble(fitted_model$data$vaccine_effect_matrix) %>%
-                                             mutate(date = fitted_model$data$dates$infection_project) %>%
-                                             pivot_longer(cols = -date, names_to = "state", values_to = "effect"))
+                                      mutate(date = fitted_model$data$dates$infection_project) %>%
+                                      pivot_longer(cols = -date, names_to = "state", values_to = "effect"))
 
 TP_no_vax <- calculate(TP_no_vax, nsim = 10000, values = fitted_model$draws)
-TP_no_vax <- apply(TP_no_vax[[1]],2:3,mean)
+TP_no_vax <- apply(TP_no_vax[[1]],2:3,FUN="mean")
 TP_no_vax <- TP_no_vax[1:length(fitted_model$data$dates$infection),]
 
 #back out surveillance
@@ -465,32 +473,32 @@ R_t <- TP_no_vax/surveillance_reff_local_reduction
 p_star <- calculate(fitted_model$greta_arrays$distancing_effect$p_star,
                     nsim = 10000,
                     values = fitted_model$draws)
-p_star <- apply(p_star[[1]],2:3,mean)
+p_star <- apply(p_star[[1]],2:3,FUN="mean")
 
 p_star <- p_star[1:length(fitted_model$data$dates$infection),]
 
 HC_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$HC_0),
-                    nsim = 10000,
-                    values = fitted_model$draws)
-HC_0 <- c(apply(HC_0[[1]],2:3,mean))
+                  nsim = 10000,
+                  values = fitted_model$draws)
+HC_0 <- c(apply(HC_0[[1]],2:3,FUN="mean"))
 
 HD_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$HD_0),
                   nsim = 10000,
                   values = fitted_model$draws)
-HD_0 <- c(apply(HD_0[[1]],2:3,mean))
+HD_0 <- c(apply(HD_0[[1]],2:3,FUN="mean"))
 
 OD_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$OD_0),
                   nsim = 10000,
                   values = fitted_model$draws)
-OD_0 <- c(apply(OD_0[[1]],2:3,mean))
+OD_0 <- c(apply(OD_0[[1]],2:3,FUN="mean"))
 
 OC_0 <- fitted_model$greta_arrays$distancing_effect$OC_0
 
 infectious_days <- infectious_period(gi_cdf)
-OC_0 <- trends_date_state(
-  "outputs/macrodistancing_trends.RDS",
-  fitted_model$greta_arrays$distancing_effect$dates
-)
+# OC_0 <- trends_date_state(
+#   "outputs/macrodistancing_trends.RDS",
+#   fitted_model$greta_arrays$distancing_effect$dates
+# )
 
 household <- HC_0 * (1 - p_star ^ HD_0) 
 non_household <- OC_0 * infectious_days * (1 - p_star ^ OD_0)
@@ -501,8 +509,8 @@ unique(R0)
 R_t_R0_ratio <- R_t/R0
 
 distance_effect_multi <- tibble(value = c(R_t_R0_ratio),
-                          state = rep(fitted_model$data$states, each = length(fitted_model$data$dates$infection)),
-                          date = rep(fitted_model$data$dates$infection, fitted_model$data$n_states))
+                                state = rep(fitted_model$data$states, each = length(fitted_model$data$dates$infection)),
+                                date = rep(fitted_model$data$dates$infection, fitted_model$data$n_states))
 
 #plot
 distance_effect_multi %>% ggplot(aes(x = date, y = value, col = state)) + 
@@ -555,3 +563,8 @@ distance_effect_multi %>% ggplot(aes(x = date, y = value, col = state)) +
 ggsave("outputs/figures/distancing_effect_multiplier.png",width = 13, height = 6)
 
 write_csv(distance_effect_multi,file = "outputs/distancing_effect_multiplier.csv")
+
+# saveRDS refitted model error quick fix
+rm(list=setdiff(ls(), "refitted_model"))
+
+saveRDS(refitted_model, "outputs/fitted_reff_only_model.RDS")

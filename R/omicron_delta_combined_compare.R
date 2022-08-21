@@ -32,33 +32,6 @@ the.date <- data$dates$linelist
 vacc.start <- ymd("2021-02-22")
 
 omicron_no_vax <- read_csv(paste0("outputs/projection/omicron/r_eff_1_local_samples.csv"),
-                  col_types =cols(
-                    .default = col_double(),
-                    date = col_date(format = ""),
-                    state = col_character(),
-                    date_onset = col_date(format = "")
-                  ))
-
-
-
-omicron_vax <- read_csv(paste0("outputs/projection/omicron_vax/r_eff_1_local_samples.csv"),
-                  col_types =cols(
-                    .default = col_double(),
-                    date = col_date(format = ""),
-                    state = col_character(),
-                    date_onset = col_date(format = "")
-                  )) 
-
-
-omicron_combined <- read_csv(paste0("outputs/projection/omicron_combined/r_eff_1_local_samples.csv"),
-                        col_types =cols(
-                          .default = col_double(),
-                          date = col_date(format = ""),
-                          state = col_character(),
-                          date_onset = col_date(format = "")
-                        )) 
-
-delta_no_vax <- read_csv(paste0("outputs/projection/delta/r_eff_1_local_samples.csv"),
                            col_types =cols(
                              .default = col_double(),
                              date = col_date(format = ""),
@@ -66,23 +39,50 @@ delta_no_vax <- read_csv(paste0("outputs/projection/delta/r_eff_1_local_samples.
                              date_onset = col_date(format = "")
                            ))
 
-delta_vax <- read_csv(paste0("outputs/projection/delta_vax/r_eff_1_local_samples.csv"),
+
+
+omicron_vax <- read_csv(paste0("outputs/projection/omicron_vax/r_eff_1_local_samples.csv"),
                         col_types =cols(
                           .default = col_double(),
                           date = col_date(format = ""),
                           state = col_character(),
                           date_onset = col_date(format = "")
                         )) 
+
+
+omicron_combined <- read_csv(paste0("outputs/projection/omicron_combined/r_eff_1_local_samples.csv"),
+                             col_types =cols(
+                               .default = col_double(),
+                               date = col_date(format = ""),
+                               state = col_character(),
+                               date_onset = col_date(format = "")
+                             )) 
+
+delta_no_vax <- read_csv(paste0("outputs/projection/delta/r_eff_1_local_samples.csv"),
+                         col_types =cols(
+                           .default = col_double(),
+                           date = col_date(format = ""),
+                           state = col_character(),
+                           date_onset = col_date(format = "")
+                         ))
+
+delta_vax <- read_csv(paste0("outputs/projection/delta_vax/r_eff_1_local_samples.csv"),
+                      col_types =cols(
+                        .default = col_double(),
+                        date = col_date(format = ""),
+                        state = col_character(),
+                        date_onset = col_date(format = "")
+                      )) 
 
 delta_combined <- read_csv(paste0("outputs/projection/delta_combined/r_eff_1_local_samples.csv"),
-                        col_types =cols(
-                          .default = col_double(),
-                          date = col_date(format = ""),
-                          state = col_character(),
-                          date_onset = col_date(format = "")
-                        )) 
+                           col_types =cols(
+                             .default = col_double(),
+                             date = col_date(format = ""),
+                             state = col_character(),
+                             date_onset = col_date(format = "")
+                           )) 
 
-start.date <- ymd("2021-02-01")
+start.date <- ymd("2021-06-01")
 end.date <- the.date
 date.label.format <- "%b %y"
 n.week.labels.panel <- 2
