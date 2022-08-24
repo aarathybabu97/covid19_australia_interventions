@@ -589,6 +589,55 @@ local_cases <- read_csv("outputs/local_cases_input.csv") %>%
   ) %>%
   filter(date <= data_date)
 
+# hack in time varying ascertainment
+
+#case ascertainment assumptions
+date_seq_asc <- seq.Date(
+  from = as.Date("2021-12-01"),
+  to = Sys.Date() + weeks(16),
+  by = "1 week"
+)
+case_ascertainment_tables <- tibble(date = date_seq_asc)
+
+# NSW, VIC, ACT and QLD
+# Case ascertainment at 75% from 1 December 2021, drop to 33.3% from
+# 12 December 2021 to 22 January 2022, and return to 75% by 23 January
+# 2022.
+
+# WA, SA, NT, and TAS
+# Assume constant 75% case ascertainment from 1 December 2021
+
+date_state_ascertainment <- expand_grid(date = seq.Date(
+  from = min(case_ascertainment_tables$date),
+  to = max(case_ascertainment_tables$date),
+  by = 1
+),
+state = states) %>% # states = sort(unique(linelist$state)
+  mutate(
+    ascertainment = case_when(
+      state %in% c("NSW", "ACT", "VIC", "QLD") &
+        (date >= "2021-12-01") & (date < "2021-12-12") ~ 0.75,
+      state %in% c("NSW", "ACT", "VIC", "QLD") &
+        (date >= "2021-12-20") & (date < "2022-01-16") ~ 0.33,
+      state %in% c("NSW", "ACT", "VIC", "QLD") &
+        (date >= "2022-01-23") ~ 0.75,
+      state %in% c("WA", "NT", "SA", "TAS") ~ 0.75,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  arrange(state) %>%
+  mutate(ascertainment = zoo::na.approx(ascertainment))
+
+
+# #divide local cases by ascertainment rates
+# local_cases <- local_cases %>% 
+#   left_join(date_state_ascertainment, by = c("date","state")) %>% 
+#   mutate(ascertainment = replace_na(ascertainment,1))
+# 
+# local_cases <- local_cases %>% 
+#   mutate(cases = cases/ascertainment) %>% 
+#   select(-ascertainment)
+
 # ascertainment_rates <- c(
 #   1,
 #   0.9,
@@ -600,11 +649,14 @@ local_cases <- read_csv("outputs/local_cases_input.csv") %>%
 #   0.3#,
 #   #0.2
 # )
-ascertainment_rates <- c(0.5, 0.75)
 
-omicron_infections <- get_omicron_infections(
-  local_cases,
-  ascertainment_rates,
+#constant 1 as placeholder ascertainment rate
+#ascertainment_rates <- 1
+
+omicron_infections <- get_infections(
+  local_cases = local_cases,
+  constant_ascertainment = FALSE, ascertainment_rate = 0.25,
+  time_varying_ascertainment = date_state_ascertainment,
   state_population
 )
 
@@ -902,8 +954,7 @@ combined_effect_timeseries %>%
       x = date,
       y = effect,
       colour = state,
-      linetype = variant,
-      alpha = ascertainment
+      linetype = variant
     ),
     size = 1
   ) +
@@ -912,8 +963,7 @@ combined_effect_timeseries %>%
     x = NULL,
     y = "Change in transmission potential",
     col = NULL,
-    linetype = "Sub-variant",
-    alpha = "Ascertainment rate"
+    linetype = "Sub-variant"
   ) +
   scale_x_date(
     # breaks = ie_short_labels$ticks,
@@ -923,20 +973,20 @@ combined_effect_timeseries %>%
   ) +
   ggtitle(
     label = "Immunity effect",
-    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and infection with Omicron BA2 sub-variant, \nassuming 50% case ascertainment"
+    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and Omicron infections, \nassuming time-varying case ascertainment"
   ) +
   cowplot::theme_cowplot() +
   cowplot::panel_border(remove = TRUE) +
   theme(
     strip.background = element_blank(),
     axis.title.y.right = element_text(vjust = 0.5, angle = 90, size = font_size),
-    legend.position = c(0.0, 0.1),
-    #legend.position = c(0.02, 0.18),
+    # legend.position = c(0.0, 0.15),
+    legend.position = "bottom",
     legend.text = element_text(size = font_size-2),
     axis.text = element_text(size = font_size),
     plot.title = element_text(size = font_size + 8),
     plot.subtitle = element_text(size = font_size)
-  ) +
+  )+
   scale_colour_manual(
     values = c(
       "darkgray",
@@ -950,8 +1000,8 @@ combined_effect_timeseries %>%
     )
   ) +
   guides(colour = "none") +
-  scale_alpha_manual(values = c(0.5,1)) +
-  scale_linetype_manual(values = c("dashed","solid")) + 
+  scale_alpha_manual(values = 1) +
+  scale_linetype_manual("Omicron sub-variant",values = c("dotted","solid" )) + 
   scale_y_continuous(
     position = "right",
     limits = c(0, 1),
@@ -962,19 +1012,14 @@ combined_effect_timeseries %>%
       xintercept = data_date
     )
   ) +
-   facet_wrap(~state, ncol = 2) 
-#   geom_line(
-#     data = vaccination_effect_timeseries %>%
-#       filter(date <= data_date, date >= "2021-12-07",  variant == "Omicron BA2"),
-#     aes(x = date, y = effect),
-#     linetype = "dashed"
-#   ) +
-#   geom_line(
-#     data = vaccination_effect_timeseries %>%
-#       filter(date <= data_date, date >= "2021-12-07", variant == "Omicron BA4/5"),
-#     aes(x = date, y = effect),
-#     linetype = "solid"
-#   )
+  geom_vline(
+    data = prop_variant_dates(),
+    aes(xintercept = date),
+    colour = "firebrick1",
+    linetype = 5
+  ) +
+  facet_wrap(~state, ncol = 2) 
+
 
 
 ggsave(
