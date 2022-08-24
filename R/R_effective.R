@@ -171,6 +171,7 @@ reff_plotting(
   subdir = "figures/one_month/no_nowcast",
   min_date = refitted_model$data$dates$latest_mobility - days(30),
   max_date = refitted_model$data$dates$latest_infection,
+
   sims = sims,
   mobility_extrapolation_rectangle = FALSE
 )
@@ -224,6 +225,15 @@ simulate_variant(variant = "omicron", subdir = "omicron/ratio", ratio_samples = 
 
 #simulate variant with vax effect
 
+# simulate_variant(
+#   variant = "omicron",
+#   subdir = "omicron_vax",
+#   vax_effect = vaccine_effect_timeseries %>% 
+#     filter(variant == "Omicron", 
+#            date <= max(fitted_model$data$dates$infection_project)) %>% 
+#     select(-variant,-percent_reduction)
+# )
+
 simulate_variant(
   variant = "omicron",
   subdir = "omicron_vax",
@@ -259,17 +269,43 @@ simulate_variant(
 
 combined_effect_timeseries_full <- readRDS("outputs/combined_effect_full.RDS")
 
+# simulate_variant(
+#   variant = "omicron",
+#   subdir = "omicron_combined/",
+#   vax_effect = combined_effect_timeseries_full %>% 
+#     filter(
+#       variant == "Omicron", 
+#       date <= max(fitted_model$data$dates$infection_project),
+#       ascertainment == 0.5
+#     ) %>% 
+#     select(-variant,-percent_reduction, -ascertainment)
+# )
+
 simulate_variant(
   variant = "omicron",
   subdir = "omicron_combined/",
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
       variant == "Omicron BA2", 
-      date <= max(refitted_model$data$dates$infection_project),
+      date <= max(fitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
     select(-variant,-percent_reduction, -ascertainment)
 )
+
+simulate_variant(
+  variant = "omicron",
+  subdir = "omicron_BA4.5_combined/",
+  vax_effect = combined_effect_timeseries_full %>% 
+    filter(
+      variant == "Omicron BA4/5", 
+      date <= max(fitted_model$data$dates$infection_project),
+
+      ascertainment == 0.5
+    ) %>% 
+    select(-variant,-percent_reduction, -ascertainment)
+)
+
 
 
 simulate_variant(
@@ -331,6 +367,27 @@ BA4_TP <- read_csv(paste0("outputs/projection/omicron_BA4.5_combined/r_eff_1_loc
                      state = col_character(),
                      date_onset = col_date(format = "")
                    )) 
+
+
+
+#ba2 vs ba4
+BA2_TP <- read_csv(paste0("outputs/projection/omicron_combined/r_eff_1_local_samples.csv"),
+                   col_types =cols(
+                     .default = col_double(),
+                     date = col_date(format = ""),
+                     state = col_character(),
+                     date_onset = col_date(format = "")
+                   )) 
+
+BA4_TP <- read_csv(paste0("outputs/projection/omicron_BA4.5_combined/r_eff_1_local_samples.csv"),
+                   col_types =cols(
+                     .default = col_double(),
+                     date = col_date(format = ""),
+                     state = col_character(),
+                     date_onset = col_date(format = "")
+                   )) 
+
+
 
 
 #plot 
@@ -414,8 +471,8 @@ ggplot() +
   #   colour = "firebrick1",
   #   linetype = 5
   # ) +
-  
-  geom_vline(xintercept = vacc.start, colour = "steelblue3", linetype = 5) +
+
+geom_vline(xintercept = vacc.start, colour = "steelblue3", linetype = 5) +
   
   facet_wrap(~state, ncol = 2, scales = "free") +
   
@@ -442,11 +499,13 @@ ggplot() +
   #   linetype = 5
   # )
 
+
 ggsave(paste0("outputs/figures/full_tp_compare_",end.date,"_BA4.png"), height = 10, width = 9, bg = "white")
 
 
 ##### for NSW TP no immunity 
 tp_novax <- read_reff_samples("outputs/projection/r_eff_1_local_without_vaccine_samples.csv")
+
 
 write_csv(
   tp_novax %>%
@@ -544,3 +603,4 @@ distance_effect_multi %>% ggplot(aes(x = date, y = value, col = state)) +
 ggsave("outputs/figures/distancing_effect_multiplier.png",width = 13, height = 6)
 
 write_csv(distance_effect_multi,file = "outputs/distancing_effect_multiplier.csv")
+

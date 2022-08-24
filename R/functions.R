@@ -2682,7 +2682,7 @@ distancing_effect_model <- function(
 attach(phi_params)
   
 attach(contact_params)
-  
+
   phi_star <- prop_wt * 1 + prop_alpha * phi_alpha + prop_delta * phi_delta + prop_omicron * phi_omicron + prop_omicron_BA4 * phi_omicron_BA4
   
   p_star <- p ^ phi_star
@@ -5571,8 +5571,6 @@ linelist <- linelist_raw %>%
   short_valid_mat <- valid_mat[dates_select,]
   
   
-  
-  
   vaccine_effect_timeseries <- readRDS(immunity_effect_path)
   
   ve_omicron <- vaccine_effect_timeseries %>%
@@ -5603,7 +5601,7 @@ linelist <- linelist_raw %>%
     dplyr::select(-date) %>%
     as.matrix
   
-  vaccine_effect_matrix_omicron <- ve_omicron %>%
+  vaccine_effect_matrix_omicron_ba2 <- ve_omicron_ba2 %>%
     pivot_wider(
       names_from = state,
       values_from = effect
@@ -5636,9 +5634,9 @@ linelist <- linelist_raw %>%
     as.matrix
   
   
-  omicron_matrix <- prop_variant(dates_project)$prop_omicron
+  omicron_ba2_matrix <- prop_variant(dates_project)$prop_omicron
   
-  omicron_index <- which(omicron_matrix == 1)
+  omicron_ba2_index <- which(omicron_ba2_matrix == 1)
   
   omicron_BA4_matrix <- prop_variant(dates_project)$prop_omicron_BA4
   
@@ -5646,11 +5644,12 @@ linelist <- linelist_raw %>%
   
   vaccine_effect_matrix <- vaccine_effect_matrix_delta
   
-  vaccine_effect_matrix[omicron_index] <- vaccine_effect_matrix_omicron[omicron_index]
+  vaccine_effect_matrix[omicron_ba2_index] <- vaccine_effect_matrix_omicron_ba2[omicron_ba2_index]
   
   vaccine_effect_matrix[omicron_BA4_index] <- vaccine_effect_matrix_omicron_BA4[omicron_BA4_index]
   
   vaccine_dates <- unique(vaccine_effect_timeseries$date)
+  
   
   #case ascertainment assumptions
   date_seq_asc <- seq.Date(
@@ -5696,7 +5695,7 @@ linelist <- linelist_raw %>%
     mutate(across(-date, ~ replace_na(.x, 1))) %>% # 100% FOR PRE DEC 2021
     dplyr::select(-date) %>%
     as.matrix
-  
+
   # return a named, nested list of these objects
   list(
     local = list(
@@ -5833,7 +5832,9 @@ TP_only_calculations <- function(data,
     ascertainment_rate = data$ascertainment_matrix
   )
   
-  
+  # ascertainment_rate <- data$ascertainment_matrix
+  # surveillance_effect_local_reduction_with_ascertainment <- 1 - ((1 - surveillance_reff_local_reduction) * ascertainment_rate)
+  # 
   # extra_isolation_local_reduction <- extra_isolation_effect(
   #   dates = data$dates$infection_project,
   #   cdf = gi_cdf,
@@ -5877,6 +5878,7 @@ TP_only_calculations <- function(data,
   
   # multiply by the surveillance and vaccination effects
   R_eff_loc_1 <- R_eff_loc_1_no_surv * surveillance_reff_local_reduction * vax_effect #*
+  # R_eff_loc_1 <- R_eff_loc_1_no_surv *  surveillance_effect_local_reduction_with_ascertainment * vax_effect #*
   #extra_isolation_local_reduction
   
   
@@ -6490,7 +6492,7 @@ reff_plotting <- function(
   }
   
   if(is.na(min_date)){
-    min_date <- max_date - months(6)
+    min_date <- max_date %m-% months(6)
   }
   
   # reformat case data for plotting (C1 and C12)
@@ -12984,6 +12986,79 @@ combine_transmission_effects <- function(
     ) %>%
     ungroup
   
+}
+
+get_hospitalisation_ve <- function(coverage, ves, ...) {
+  ves %>%
+    filter(outcome == "hospitalisation") %>%
+    
+    left_join(coverage, by = c("scenario", "state", "age_band")) %>%
+    complete(scenario, omicron_scenario, state, age_band, variant, outcome) %>%
+    
+    mutate(ve = replace_na(ve, 0),
+           coverage = replace_na(coverage, 0),
+           m_hosp = 1 - ve * coverage)
+}
+
+get_hospitalisation_ve_pop_mean <- function(coverage, ves, state_population_by_age_band, ...) {
+  ves %>%
+    filter(outcome == "hospitalisation") %>%
+    
+    left_join(coverage, by = c("scenario", "state", "age_band")) %>%
+    complete(scenario, omicron_scenario, state, age_band, variant, outcome) %>%
+    
+    mutate(ve = replace_na(ve, 0),
+           coverage = replace_na(coverage, 0),
+           m_hosp = 1 - ve * coverage) %>%
+    
+    left_join(state_population_by_age_band, by = c("age_band", "state")) %>%
+    
+    group_by(scenario, omicron_scenario, variant, state) %>%
+    summarise(m_hosp = sum(m_hosp * prop_age), .groups = "drop")
+}
+
+get_hospitalisation_vie_pop_mean <- function(coverage, ves, coverage_infection, ies, vies, state_population_by_age_band, ...) {
+  
+  
+  coverage %>%
+    left_join(ves %>% filter(variant != "Delta"), by = c("scenario", "state", "age_band")) %>%
+    rename(coverage_vacc = coverage,
+           effect_vacc = ve) %>%
+    filter(outcome == "hospitalisation") %>%
+    complete(scenario, omicron_scenario, state, age_band, variant, outcome) %>%
+    
+    left_join(coverage_infection %>% rename(coverage_inf = coverage), by = "state") %>%
+    left_join(ies %>% rename(effect_inf = ve), by = c("omicron_scenario", "state", "variant", "outcome")) %>%
+    left_join(vies %>% rename(effect_both = ve), by = c("scenario", "omicron_scenario", "state", "age_band", "variant", "outcome")) %>%
+    mutate(coverage_vacc = replace_na(coverage_vacc, 0),
+           effect_vacc = replace_na(effect_vacc, 0),
+           effect_both = replace_na(effect_both, 0)) %>%
+    
+    mutate(p_vacc_only = coverage_vacc * (1 - coverage_inf),
+           p_inf_only = coverage_inf * (1 - coverage_vacc),
+           p_both = coverage_inf * coverage_vacc) %>%
+    
+    mutate(m_hosp = 1 - (p_vacc_only * effect_vacc + p_inf_only * effect_inf + p_both * effect_both)) %>%
+    
+    left_join(state_population_by_age_band, by = c("age_band", "state")) %>%
+    
+    group_by(scenario, omicron_scenario, variant, state) %>%
+    summarise(m_hosp = sum(m_hosp * prop_age), .groups = "drop")
+}
+
+
+vaccine_age_bands_to_wider <- function(age_group_vacc) {
+  case_when(
+    age_group_vacc %in% c("0-4") ~ "0-4",
+    age_group_vacc %in% c("5-11") ~ "5-11",
+    age_group_vacc %in% c("12-15", "16-19") ~ "12-19",
+    age_group_vacc %in% c("20-24", "25-29") ~ "20-29",
+    age_group_vacc %in% c("30-34", "35-39") ~ "30-39",
+    age_group_vacc %in% c("40-44", "45-49") ~ "40-49",
+    age_group_vacc %in% c("50-54", "55-59") ~ "50-59",
+    age_group_vacc %in% c("60-64", "65-69") ~ "60-69",
+    age_group_vacc %in% c("70-74", "75-79") ~ "70-79",
+    age_group_vacc %in% c("80+") ~ "80+")
 }
 
 #deal with empty ggsave background

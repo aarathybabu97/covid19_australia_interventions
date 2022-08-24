@@ -40,9 +40,10 @@ ggsave(
 source("R/microdistancing_change.R")
 # -- figure to Mediaflux / Freya
 
+
 # 8. Run macrodistancing model and output figure ((microdistancing_effect.png) and
 # trend estimates (macrodistancing_trends.RDS). Can be run concurrently with
-# microdistancing model (i.e. on a separate process/machine) [~5-8h]
+# microdistancing model (i.e. on a separate process/machine) [~10h]
 # macro takes half a day to run so best to do on Mondays
 source("R/macrodistancing_change.R")
 # -- figure to Mediaflux / Freya
@@ -63,6 +64,16 @@ linelist <- load_linelist(use_vic = FALSE) #skip Vic since using summary data
 # need to look at this again at some point
 linelist$date_onset[(linelist$state == "SA" & linelist$date_onset >= as_date("2022-02-27"))] <- NA
 
+
+#check min & max dates
+
+min_date <- min(linelist$date_confirmation)
+max_date <- max(linelist$date_confirmation)
+
+#remove ddubious SA confirmation dates
+linelist <- linelist %>% filter(date_confirmation >= "2020-01-23")
+
+
 saveRDS(
   linelist,
   sprintf(
@@ -71,6 +82,7 @@ saveRDS(
       format.Date(format = "%Y%m%d")
   )
 )
+
 
 source("R/rolling_delays.R")
 #  -- figs to Mediaflux / to Freya
