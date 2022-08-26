@@ -5573,7 +5573,7 @@ linelist <- linelist_raw %>%
   
   vaccine_effect_timeseries <- readRDS(immunity_effect_path)
   
-  ve_omicron <- vaccine_effect_timeseries %>%
+  ve_omicron_ba2 <- vaccine_effect_timeseries %>%
     filter(variant == "Omicron BA2") %>%
     select(date, state, effect)
   
