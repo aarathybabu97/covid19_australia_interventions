@@ -88,9 +88,13 @@ matrix_multiply_pre_calc <- function(
   immunity_matrix <- matrix(
     nrow = length(margin),
     ncol = length(margin),
-    dimnames = list(paste0(margin,"_week"), paste0(margin,"_week")),
+    dimnames = list(paste0(margin,"_week"), 
+                    paste0(margin,"_week")),
     data = 0
   )
+  
+  colnames(immunity_matrix)[1:2] <- c("non-immune","infection")
+  rownames(immunity_matrix)[1:2] <- c("non-immune","infection")
   
   margin_length <- length(margin)
   
@@ -131,7 +135,11 @@ immunity_matrix_multiply <- function(
   immunity_matrix <- pre_calc_output$immunity_matrix
   sub_diag_index <- pre_calc_output$sub_diag_index
   
-  pr_infection <- relative_pr_infection * weekly_new_infections / population * state
+  #recalibrate relative_pr_infection with only the possible states with people
+  relative_pr_infection <- relative_pr_infection * state
+  relative_pr_infection <- relative_pr_infection/sum(relative_pr_infection)
+  
+  pr_infection <- relative_pr_infection * weekly_new_infections / population 
   
   pr_not_infection <- 1 - pr_infection
   
@@ -172,17 +180,19 @@ for (iter in 1:length(weekly_new_infections)){
   
   this_state <- immunity_matrix_multiply(state = this_state,
                                          weekly_new_infections = weekly_new_infections[iter],
-                                         pre_calc_output = pre_calc_test,population = NSW_pop)
+                                         pre_calc_output = pre_calc_test,
+                                         population = NSW_pop)
   #print(iter)
 }
 this_state
 
+this_state*NSW_pop
 
 this_state_sim_data <- immunity_matrix_multiply(pre_calc_output = pre_calc_test)
-for (iter in 1:100000){
+for (iter in 1:10000){
   
   this_state_sim_data <- immunity_matrix_multiply(state = this_state_sim_data,
-                                         weekly_new_infections = rpois(1,10),
+                                         weekly_new_infections = 100,
                                          pre_calc_output = pre_calc_test)
   #print(iter)
 }
