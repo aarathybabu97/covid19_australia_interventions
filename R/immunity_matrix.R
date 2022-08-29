@@ -188,6 +188,14 @@ this_state
 
 this_state*NSW_pop
 
+#check reinfection as % of total pop
+total_infection_if_no_reinfection <- sum(weekly_new_infections)/NSW_pop
+
+total_infection_if_no_reinfection - (1-this_state[1])
+#reinfection as % of infections reported
+(1-this_state[1])/total_infection_if_no_reinfection
+
+
 this_state_sim_data <- immunity_matrix_multiply(pre_calc_output = pre_calc_test)
 for (iter in 1:10000){
   
