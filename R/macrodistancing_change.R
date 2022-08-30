@@ -604,12 +604,12 @@ p <- ggplot(df,mapping = aes(date, mean, colour = year, fill = year)) +
     strip.text = element_text(hjust = 0, face = "bold"),
     axis.title.y.right = element_text(vjust = 0.5, angle = 90),
     panel.spacing = unit(1.2, "lines"),
-    axis.text.x = element_text(size = x_text_size, angle = x_text_angle, hjust = x_text_hjust, vjust = x_text_vjust)) + scale_color_manual(values = c("grey","purple")) + facet_wrap(~ state, ncol = 2, scales = "free")  + 
+    axis.text.x = element_text(size = 8, angle = x_text_angle, hjust = x_text_hjust, vjust = x_text_vjust)) + scale_color_manual(values = c("grey","purple")) + facet_wrap(~ state, ncol = 2, scales = "free")  + 
   ggtitle(label = "Macro-distancing trend",
           subtitle = "Rate of non-household contacts") +
   ylab("Estimated mean number of non-household contacts per day") + 
   
-  
+   theme(legend.position="top")+
   # rug marks for holidays
   geom_rug(
     aes(date),

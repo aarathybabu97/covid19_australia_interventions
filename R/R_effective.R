@@ -13,9 +13,17 @@ sync_nndss()
 linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 #old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
-                        notification_delay_cdf = NULL,
-                        start_date = as_date("2022-06-30"))
-#normally start from 2021-06-01 as per Rob M's request
+                        notification_delay_cdf = NULL)
+ #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
+# data[["detection_prob_mat"]][919:920,4] <- 0.93
+#reload data here to get the latest vaccine effect, which is typically computed after linelist
+
+#data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
+# #quick check if reff data is already loaded
+# if (length(data) != 12) {
+#   data <- reff_model_data() 
+#   saveRDS(data, "outputs/pre_loaded_reff_data.RDS")
+# }
 
 #check data date
 data$dates$linelist
@@ -171,7 +179,6 @@ reff_plotting(
   subdir = "figures/one_month/no_nowcast",
   min_date = refitted_model$data$dates$latest_mobility - days(30),
   max_date = refitted_model$data$dates$latest_infection,
-
   sims = sims,
   mobility_extrapolation_rectangle = FALSE
 )
