@@ -1,4 +1,6 @@
 source("R/functions.R")
+# add queensland data 
+source("R/interim_qld_data.R")
 
 #library(readxl); library(tidyverse); library(lubridate);library(rvest)
 
@@ -8,7 +10,7 @@ source("R/functions.R")
 ll_filepath <- "~/not_synced/PCR and RAT Breakdown (24 hour totals).xlsx"
 
 linelist_commonwealth <- read_xlsx(ll_filepath,
-                                   range = "B4:AC214",sheet = 2,
+                                   range = "B4:AC235",sheet = 2,
                                    col_types = c("date",rep("numeric",27))) %>% 
   select(-starts_with("Total"))
 
@@ -57,19 +59,11 @@ linelist_commonwealth <- linelist_commonwealth %>% select(-c("PCR_VIC.x","RAT_VI
   rename("PCR_VIC" = "PCR_VIC.y",
          "RAT_VIC" = "RAT_VIC.y")
 
-# add queensland data 
-source("R/interim_qld_data.R")
 
-qld_state_count <- read_csv("~/not_synced/qld/combined_state_commons_count_qld.csv")%>% 
-  mutate(Date=as.Date(Date,format = "%Y%m%d"))%>%
-  filter(str_detect(source,"state"))%>%
-  pivot_wider(names_from = source,values_from = count)
+qld_state_count <- read_csv("~/not_synced/qld/linelist_commonwealth_QLD.csv")%>% 
+  mutate(Date=as.Date(Date,format = "%Y%m%d"))
 
-linelist_commonwealth<- linelist_commonwealth %>% left_join(qld_state_count ,by = "Date")%>%
-  select(-c("PCR_QLD","RAT_QLD")) %>%
-  rename("PCR_QLD"="state_nocs",
-         "RAT_QLD"="state_rats")
-
+linelist_commonwealth<- linelist_commonwealth %>% left_join(qld_state_count ,by = "Date")
 
 #pivot into linelist format
 linelist_commonwealth <- linelist_commonwealth %>%
@@ -133,6 +127,9 @@ linelist_commonwealth <- linelist_commonwealth %>%
                    scraped$state %in% holiday_dates_to_replace$state),])
 
 
+linelist_commonwealth%>%
+  filter(is.na(daily_notification))
+
 linelist_commonwealth <- linelist_commonwealth %>% dplyr::mutate(daily_notification = replace_na(daily_notification, 0))%>%
   
   uncount(weights = daily_notification)
@@ -171,7 +168,7 @@ old_delay_cdf <- readRDS("~/covid19_australia_interventions/outputs/old_method_d
 # run get_nsw_linelist to get the new NSW data, 
 # remove any NSW cases in the old regular linelist and put in the new NSW data
 
-regular_ll <- readRDS("~/covid19_australia_interventions/outputs/linelist_20220809.RDS")
+regular_ll <- readRDS("~/covid19_australia_interventions/outputs/linelist_20220816.RDS")
 
 #sanity check against dubious dates
 regular_ll <- regular_ll %>% filter(date_confirmation >= "2020-01-01")
@@ -239,6 +236,7 @@ data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = old_delay_cdf)
 #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
 saveRDS(data, "outputs/pre_loaded_reff_data_old_imputation.RDS")
+#data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
 
 source("R/watermelon_plot.R")
 
