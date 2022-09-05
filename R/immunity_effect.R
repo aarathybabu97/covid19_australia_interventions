@@ -43,7 +43,7 @@ scenario_to_use <- lookups$scenario$scenario[grep("Realistic", lookups$scenario$
 scenario_to_use %in% unique(vaccine_raw$scenario)
 #scenario_to_use <- 141
 
-scenario_to_use
+scenario_to_use <- 307
 
 # aggregate to state
 vaccine_state <- aggregate_quantium_vaccination_data_to_state(vaccine_raw) %>%
@@ -656,7 +656,7 @@ state = states) %>% # states = sort(unique(linelist$state)
 
 omicron_infections <- get_infections(
   local_cases = local_cases,
-  constant_ascertainment = FALSE, ascertainment_rate = 0.25,
+  constant_ascertainment = TRUE, ascertainment_rate = c(0.5,0.75),
   time_varying_ascertainment = date_state_ascertainment,
   state_population
 )

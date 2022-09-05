@@ -12241,6 +12241,32 @@ get_infections <- function(
         num_people = num_people/ascertainment
       )
     
+    not_infected <- omicron_infections_only %>% 
+      group_by(state, ascertainment) %>%
+      summarise(
+        num_people = sum(num_people)
+      ) %>%
+      left_join(
+        state_population,
+        by = "state"
+      ) %>%
+      mutate(
+        num_people = population - num_people
+      ) %>%
+      mutate(
+        date = NA_Date_
+      ) %>%
+      select(date, state, num_people, ascertainment)
+    
+    
+    omicron_infections <- bind_rows(
+      omicron_infections_only,
+      not_infected
+    ) %>%
+      nest(
+        "omicron_infections" = -ascertainment
+      )
+    
   } else {
     
     omicron_infections_only <- local_cases %>%
@@ -12273,39 +12299,38 @@ get_infections <- function(
       mutate(
         num_people = num_people/ascertainment
       ) %>% select(-ascertainment)
+    
+    
+    not_infected <- omicron_infections_only %>% 
+      group_by(state) %>%
+      summarise(
+        num_people = sum(num_people)
+      ) %>%
+      left_join(
+        state_population,
+        by = "state"
+      ) %>%
+      mutate(
+        num_people = population - num_people
+      ) %>%
+      mutate(
+        date = NA_Date_
+      ) %>%
+      select(date, state, num_people)
+    
+    
+    omicron_infections <- bind_rows(
+      omicron_infections_only,
+      not_infected
+    ) 
+    
+    #get BA4 differentiation
+    omicron_infections <- omicron_infections %>% 
+      mutate(subvariant = ifelse(date >= "2022-07-01","BA4","BA2"))
+    
+    omicron_infections <- list(omicron_infections)
+    
   }
-  
-
-  
-  
-  not_infected <- omicron_infections_only %>% 
-    group_by(state) %>%
-    summarise(
-      num_people = sum(num_people)
-    ) %>%
-    left_join(
-      state_population,
-      by = "state"
-    ) %>%
-    mutate(
-      num_people = population - num_people
-    ) %>%
-    mutate(
-      date = NA_Date_
-    ) %>%
-    select(date, state, num_people)
-  
-  
-  omicron_infections <- bind_rows(
-    omicron_infections_only,
-    not_infected
-  ) 
-  
-  #get BA4 differentiation
-  omicron_infections <- omicron_infections %>% 
-    mutate(subvariant = ifelse(date >= "2022-07-01","BA4","BA2"))
-  
-  omicron_infections <- list(omicron_infections)
   
   return(omicron_infections)
 }
