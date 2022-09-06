@@ -1,7 +1,43 @@
-library(tidyverse)
-library(readr)
-library(readxl)
-library(lubridate)
+# library(tidyverse)
+# library(readr)
+# library(readxl)
+# library(lubridate)
+# 
+# get_qld_data_dates <- function(){
+#   list.dirs(
+#     path = "~/not_synced/qld/",
+#     full.names = FALSE,
+#     recursive = FALSE
+#   ) %>%
+#     as.Date
+# }
+# get_qld_data_dates()
+# 
+# get_qld_data_dir <- function(
+#   date = NULL
+# ){
+#   # get most recent forecast
+#   dir_dates <- get_qld_data_dates()
+#   
+#   if (is.null(date)) {
+#     dir_index <- which.max(dir_dates)
+#   } else {
+#     dir_index <- which(dir_dates == date)
+#     if (length(dir_index) != 1){
+#       stop("Either no directory or too many directories match this date")
+#     }
+#   }
+#   
+#   dir <- list.dirs(
+#     path = "~/not_synced/qld/",
+#     full.names = TRUE,
+#     recursive = FALSE
+#   )[dir_index]
+#   
+#   return(dir)
+#   
+# }
+
 
 
 nocs <- read_csv("~/not_synced/qld/nocs_freya.csv")
@@ -34,7 +70,7 @@ rats_by_date <- rats %>%
   rename(RAT_QLD = daily_count)
 
 linelist_commonwealth_QLD <- nocs_by_date %>%
-  left_join(rats_by_date, by = c("CollectionDate" = "DateOfTestResult")) %>%
+  full_join(rats_by_date, by = c("CollectionDate" = "DateOfTestResult")) %>%
   rename("Date" = "CollectionDate") %>%
   mutate(Date = as.Date(Date, format = "%Y%m%d"))
 
