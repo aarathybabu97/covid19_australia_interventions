@@ -36,14 +36,18 @@ vaccine_raw <- read_quantium_vaccination_data()
 # choose 75
 unique(vaccine_raw$scenario)
 
-scenario_to_use <- lookups$scenario$scenario[grep("Realistic", lookups$scenario$booster_uptake)]
+#scenario_to_use <- lookups$scenario$scenario[grep("Realistic", lookups$scenario$booster_uptake)]
+
+# choosing the lowest fourth dose uptake as realistic : per the emails from Quantium 
+# the lowest 4th dose is the "realistic" scenario but THIS MAY CHANGE IN THE FUTURE
+
+scenario_to_use <- lookups$scenario$scenario[which.min(parse_number(lookups$scenario$fourth_dose_uptake))]
 
 # this may fail if scenario lookup table is not up to date so check this is TRUE or will cause failure later
 # otherwise may need to check email for appropriate scenario number and assign manually
 scenario_to_use %in% unique(vaccine_raw$scenario)
 #scenario_to_use <- 141
 
-scenario_to_use <- 307
 
 # aggregate to state
 vaccine_state <- aggregate_quantium_vaccination_data_to_state(vaccine_raw) %>%
