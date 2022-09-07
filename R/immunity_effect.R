@@ -48,7 +48,7 @@ scenario_to_use <- lookups$scenario$scenario[which.min(parse_number(lookups$scen
 scenario_to_use %in% unique(vaccine_raw$scenario)
 #scenario_to_use <- 141
 
-
+scenario_to_use
 # aggregate to state
 vaccine_state <- aggregate_quantium_vaccination_data_to_state(vaccine_raw) %>%
   filter(scenario == scenario_to_use)
