@@ -13,8 +13,9 @@ sync_nndss()
 linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 #old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
-                        notification_delay_cdf = NULL)
- #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
+                        notification_delay_cdf = NULL,
+                        start_date = as_date("2021-06-01"))
+  #data[["valid_mat"]][c(451,452),"QLD"] <- FALSE
 # data[["detection_prob_mat"]][919:920,4] <- 0.93
 #reload data here to get the latest vaccine effect, which is typically computed after linelist
 
@@ -246,6 +247,7 @@ simulate_variant(
   subdir = "omicron_vax",
   vax_effect = vaccine_effect_timeseries %>% 
     filter(variant == "Omicron BA2", 
+           date>=as_date("2021-06-01"),
            date <= max(refitted_model$data$dates$infection_project)) %>% 
     select(-variant,-percent_reduction)
 )
@@ -256,6 +258,7 @@ simulate_variant(
   subdir = "delta_vax",
   vax_effect = vaccine_effect_timeseries %>% 
     filter(variant == "Delta", 
+           date>=as_date("2021-06-01"),
            date <= max(refitted_model$data$dates$infection_project)) %>% 
     select(-variant,-percent_reduction)
 )
@@ -266,6 +269,7 @@ simulate_variant(
   subdir = "omicron_BA4_vax",
   vax_effect = vaccine_effect_timeseries %>% 
     filter(variant == "Omicron BA4/5", 
+           date>=as_date("2021-06-01"),
            date <= max(refitted_model$data$dates$infection_project)) %>% 
     select(-variant,-percent_reduction)
 )
@@ -294,24 +298,26 @@ simulate_variant(
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
       variant == "Omicron BA2", 
+      date>=as_date("2021-06-01"),
       date <= max(fitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
     select(-variant,-percent_reduction, -ascertainment)
 )
 
-simulate_variant(
-  variant = "omicron",
-  subdir = "omicron_BA4.5_combined/",
-  vax_effect = combined_effect_timeseries_full %>% 
-    filter(
-      variant == "Omicron BA4/5", 
-      date <= max(fitted_model$data$dates$infection_project),
-
-      ascertainment == 0.5
-    ) %>% 
-    select(-variant,-percent_reduction, -ascertainment)
-)
+# simulate_variant(
+#   variant = "omicron",
+#   subdir = "omicron_BA4.5_combined/",
+#   vax_effect = combined_effect_timeseries_full %>% 
+#     filter(
+#       variant == "Omicron BA4/5", 
+#       date>=as_date("2021-06-01"),
+#       date <= max(fitted_model$data$dates$infection_project),
+# 
+#       ascertainment == 0.5
+#     ) %>% 
+#     select(-variant,-percent_reduction, -ascertainment)
+# )
 
 
 
@@ -321,6 +327,7 @@ simulate_variant(
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
       variant == "Delta", 
+      date>=as_date("2021-06-01"),
       date <= max(refitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
@@ -333,6 +340,7 @@ simulate_variant(
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
       variant == "Omicron BA4/5", 
+      date>=as_date("2021-06-01"),
       date <= max(refitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
@@ -358,24 +366,6 @@ no_vax_or_infection_immunity_c1 <- read_csv(paste0("outputs/projection/r_eff_1_l
                                               date_onset = col_date(format = "")
                                             )) 
 
-#ba2 vs ba4
-BA2_TP <- read_csv(paste0("outputs/projection/omicron_BA2_combined/r_eff_1_local_samples.csv"),
-                                     col_types =cols(
-                                       .default = col_double(),
-                                       date = col_date(format = ""),
-                                       state = col_character(),
-                                       date_onset = col_date(format = "")
-                                     )) 
-
-BA4_TP <- read_csv(paste0("outputs/projection/omicron_BA4.5_combined/r_eff_1_local_samples.csv"),
-                   col_types =cols(
-                     .default = col_double(),
-                     date = col_date(format = ""),
-                     state = col_character(),
-                     date_onset = col_date(format = "")
-                   )) 
-
-
 
 #ba2 vs ba4
 BA2_TP <- read_csv(paste0("outputs/projection/omicron_combined/r_eff_1_local_samples.csv"),
@@ -386,7 +376,7 @@ BA2_TP <- read_csv(paste0("outputs/projection/omicron_combined/r_eff_1_local_sam
                      date_onset = col_date(format = "")
                    )) 
 
-BA4_TP <- read_csv(paste0("outputs/projection/omicron_BA4.5_combined/r_eff_1_local_samples.csv"),
+BA4_TP <- read_csv(paste0("outputs/projection/omicron_BA4_combined/r_eff_1_local_samples.csv"),
                    col_types =cols(
                      .default = col_double(),
                      date = col_date(format = ""),
@@ -398,7 +388,7 @@ BA4_TP <- read_csv(paste0("outputs/projection/omicron_BA4.5_combined/r_eff_1_loc
 
 
 #plot 
-start.date <- ymd("2021-02-01")
+start.date <- ymd("2021-06-01")
 end.date <- Sys.Date()
 vacc.start <- ymd("2021-02-22")
 date.label.format <- "%b %y"
@@ -542,7 +532,7 @@ R_t <- TP_no_vax/surveillance_reff_local_reduction
 p_star <- calculate(fitted_model$greta_arrays$distancing_effect$p_star,
                     nsim = 10000,
                     values = fitted_model$draws)
-p_star <- apply(p_star[[1]],2:3,mean)
+p_star <- apply(p_star[[1]],2:3,FUN="mean")
 
 p_star <- p_star[1:length(fitted_model$data$dates$infection),]
 
