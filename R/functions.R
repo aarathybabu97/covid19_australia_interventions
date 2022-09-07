@@ -4920,10 +4920,10 @@ preprocess_nndss_linelist <- function(
   
   if (is.numeric(dat$POSTCODE)) {
     dat <- dat %>%
-      mutate(
-        POSTCODE = sprintf("%04d", dat$POSTCODE),
-        POSTCODE = ifelse(POSTCODE == "00NA", NA, POSTCODE) 
-      )
+        mutate(
+          POSTCODE = sprintf("%04.f", dat$POSTCODE),
+          POSTCODE = ifelse(POSTCODE %in% c("0000", "00NA"), NA, POSTCODE) 
+        )
   } else {
     dat <- dat %>%
       mutate(POSTCODE = NA)
@@ -7040,7 +7040,7 @@ write_local_cases <- function(model_data, dir = "outputs") {
     acquired_in_state = as.vector(model_data$local$cases),
     dow_effect = as.vector(model_data$dow_effect)
   )%>% write.csv(
-    file.path(dir,paste0("local_cases_input_", format(Sys.time(), "%Y-%m-%d"), ".csv")),
+    file.path(dir,paste0("local_cases_input_", format(modeldata$dates$linelist, "%Y-%m-%d"), ".csv")),
     row.names = FALSE
   )
   
