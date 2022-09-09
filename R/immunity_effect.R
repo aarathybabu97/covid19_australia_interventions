@@ -43,7 +43,7 @@ scenario_to_use <- lookups$scenario$scenario[grep("Realistic", lookups$scenario$
 scenario_to_use %in% unique(vaccine_raw$scenario)
 #scenario_to_use <- 141
 
-scenario_to_use <- 307
+scenario_to_use <- lookups$scenario$scenario[1]
 
 # aggregate to state
 vaccine_state <- aggregate_quantium_vaccination_data_to_state(vaccine_raw) %>%

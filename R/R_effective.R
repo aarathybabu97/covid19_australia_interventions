@@ -13,8 +13,9 @@ sync_nndss()
 linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 #old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
-                        notification_delay_cdf = NULL)
- #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
+                        notification_delay_cdf = NULL,
+                        start_date = as_date("2021-06-01"))
+data[["valid_mat"]][c(443:444),"QLD"] <- FALSE
 # data[["detection_prob_mat"]][919:920,4] <- 0.93
 #reload data here to get the latest vaccine effect, which is typically computed after linelist
 

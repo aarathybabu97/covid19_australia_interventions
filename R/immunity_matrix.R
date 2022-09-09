@@ -270,23 +270,18 @@ ips <- immunity_pops %>%
 
 
 ggplot() +
-  geom_line(
-    data = ips %>% filter(immune),
+  geom_area(
+    data = ips %>% mutate(state = factor(state,levels = unique(state)),
+                                         pop = pop/NSW_pop),
     aes(
       x = week,
       y = pop,
-      colour = post_immune,
       fill = state
     )
-  ) +
-  geom_line(
-    data = ips %>% filter(!immune),
-    aes(
-      x = week,
-      y = pop
-    ),
-    colour = "red"
-  )
+  ) + scale_fill_manual(values = c("grey",
+                                 "dark green",
+                                 colorRampPalette(c(green,blue))(10) )) + 
+  ylab("proportion of total population") + xlab("week(s) since infection")
 
 
 ggplot() +

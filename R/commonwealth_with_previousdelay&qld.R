@@ -8,7 +8,7 @@ source("R/functions.R")
 ll_filepath <- "~/not_synced/PCR and RAT Breakdown (24 hour totals).xlsx"
 
 linelist_commonwealth <- read_xlsx(ll_filepath,
-                                   range = "B4:AC214",sheet = 2,
+                                   range = "B4:AC242",sheet = 2,
                                    col_types = c("date",rep("numeric",27))) %>% 
   select(-starts_with("Total"))
 
@@ -171,7 +171,7 @@ old_delay_cdf <- readRDS("~/covid19_australia_interventions/outputs/old_method_d
 # run get_nsw_linelist to get the new NSW data, 
 # remove any NSW cases in the old regular linelist and put in the new NSW data
 
-regular_ll <- readRDS("~/covid19_australia_interventions/outputs/linelist_20220809.RDS")
+regular_ll <- readRDS("~/covid19_australia_interventions/outputs/linelist_20220824.RDS")
 
 #sanity check against dubious dates
 regular_ll <- regular_ll %>% filter(date_confirmation >= "2020-01-01")
