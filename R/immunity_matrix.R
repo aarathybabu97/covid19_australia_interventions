@@ -159,7 +159,9 @@ NSW_pop <- state_populations() %>%
   filter(state == "New South Wales") %>% 
   pull(population)
 
-daily_new_infections <- read_csv("outputs/local_cases_input.csv") %>% 
+get_local_cases_input()
+
+daily_new_infections <-  readr::read_csv(paste0("outputs/",get_local_cases_input())) %>% 
   filter(state == "NSW", 
          date_onset >= as_date("2021-12-01"),
          date_onset <= (as_date("2021-12-01") + weeks(20)-days(1)))

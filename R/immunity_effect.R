@@ -585,8 +585,10 @@ ggplot(vaccinated_population_mean_ve) +
 
 ## Immunity effect -------------
 
+# check if the correct local cases input file is read 
+get_local_cases_input()
 
-local_cases <- read_csv("outputs/local_cases_input.csv") %>%
+local_cases <- readr::read_csv(paste0("outputs/",get_local_cases_input())) %>%
   select(
     date = date_onset,
     state,
@@ -672,7 +674,7 @@ ie_tables <- tibble(
     from = as.Date("2021-12-07"),
     to = data_date + weeks(16),
     by = "1 week"
-  #)[22:25] - 1
+    #)[22:25] - 1
   ) - 1
 ) %>%
   expand_grid(omicron_infections) %>%
@@ -836,8 +838,8 @@ combined_and_vax_timeseries <- bind_rows(
       effect_type = "Vaccination immunity"
     )
 )
-  
-  
+
+
 
 
 # immunity effect plots ------
@@ -1138,14 +1140,14 @@ combined_effect_timeseries_full %>%
   mutate(ascertainment = as.character(ascertainment)) %>% 
   ggplot() +
   geom_line(
-aes(
-    x = date,
-    y = effect,
-    colour = state,
-    alpha = variant
-  ),
-size = 1
-) +
+    aes(
+      x = date,
+      y = effect,
+      colour = state,
+      alpha = variant
+    ),
+    size = 1
+  ) +
   theme_classic() +
   labs(
     x = NULL,
@@ -1294,7 +1296,7 @@ aggregated_vaccination_data <- lapply(
       vaccine = unique(data$vaccine),
       num_people = 0
     ) #%>%
-      #mutate(vaccine = as.factor(vaccine))
+    #mutate(vaccine = as.factor(vaccine))
     
     dose_1s <- data %>%
       select(
@@ -1429,7 +1431,7 @@ aggregated_vaccination_data <- lapply(
       mutate(date = date)
     
     return(result)
-
+    
   },
   data = vaccine_state %>%
     filter(scenario == scenario_to_use) %>%

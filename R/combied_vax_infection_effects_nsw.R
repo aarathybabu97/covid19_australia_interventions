@@ -15,7 +15,7 @@ state_population <- vaccine_state %>%
   )
 
 
-local_cases <- read_csv("outputs/local_cases_input.csv") %>%
+local_cases <- readr::read_csv(paste0("outputs/",get_local_cases_input())) %>%
   select(
     date = date_onset,
     state,
