@@ -11165,6 +11165,21 @@ state_short_long_table <- tibble::tribble(
 )
 
 
+# get qld health data dates 
+
+get_qld_data_dates <- function(){
+  files <- list.files(pattern = "nocs_freya.|rats_freya.*csv", path="~/not_synced/qld/",   
+                      full.names = FALSE) 
+  qld_data_dates <- sub("\\..*", "", files) %>%
+    str_sub(start = -8) %>%
+    as.numeric() %>%
+    dmy()%>%
+    max()%>%
+    as.character("%d%m%Y")
+  
+  return(qld_data_dates)  
+}
+
 get_quantium_lookups <- function(dir) {
   
   lookups <- list(
