@@ -7058,6 +7058,18 @@ get_local_cases_input <-  function() {
   return(latest_local_cases_input)
 }
 
+
+# Get latest linelist 
+
+get_latest_linelist<-  function() {
+  file <-  list.files(pattern="linelist.*RDS", path="outputs/",   
+                      full.names = FALSE
+  ) 
+  all_linelists_dates<- parsedate::parse_date((file))%>%as.Date
+  latest_linelist<- file[which.max(all_linelists_dates)]
+  return(latest_linelist)
+}
+
 # convert any new linelist files into formatted case data in past_cases
 update_past_cases <- function(past_cases_dir = "outputs/past_cases") {
   
