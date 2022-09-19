@@ -1,74 +1,10 @@
 library(dplyr)
-library(conmat)
 library(tidyr)
+library(ggplot2)
+library(tibble)
+source("R/functions.R")
+options(scipen = 100)
 
-
-# 
-# weeks <- 0:10
-# 
-# 
-# 
-# ve_predictions <- read_csv("outputs/ve_waning_predictions_omicron.csv")
-# 
-# 
-# ve_test <- ve_predictions %>%
-#   filter(
-#     outcome == "acquisition",
-#     immunity == "omicron_infection",
-#     days <=10 # will need to be changed to weeks
-#   ) %>%
-#   pull(ve_predict_mean)
-# 
-# states <- c("non-immune", "wk_since_exposure")
-# 
-# margin <- c(NA, 0:10)
-# 
-# immunity_matrix <- matrix(
-#   nrow = length(margin),
-#   ncol = length(margin),
-#   dimnames = list(paste0(margin,"_week"), paste0(margin,"_week")),
-#   data = 0
-# )
-# 
-# 
-# #pr_infection <- 0.1
-# 
-# margin_length <- length(margin)
-# 
-# #ve_infection <- c(0, rep(0.2, margin_length - 1))
-# ve_infection <- c(0, ve_test)
-# relative_risk <- 1 - ve_infection
-# 
-# weekly_new_infections <- 100
-# population <- 1e5
-# relative_pr_infection <- relative_risk / sum(relative_risk)
-# 
-# pr_infection <- relative_pr_infection * weekly_new_infections / population
-# 
-# pr_not_infection <- 1 - pr_infection
-# 
-# sub_diag <- (row(immunity_matrix) - col(immunity_matrix)) == 1
-# sub_diag[1, 1] <- TRUE
-# sub_diag[2, 1] <- FALSE
-# sub_diag[margin_length, margin_length] <- TRUE
-# sub_diag_index <- which(sub_diag)
-# 
-# immunity_matrix[sub_diag_index] <- pr_not_infection[]
-# immunity_matrix[2, ] <- pr_infection
-# 
-# immunity_matrix
-# # initial_states < as.vector(immunity_matrix)
-# # initial_index <- which(initial_states != 0)
-# # initial
-# 
-# state <- rep(1/ margin_length, margin_length)
-# 
-# state_2 <- immunity_matrix %*% state
-
-# generate function that takes all the pre-calculated bits and takes
-# in initial state and weekly infections
-# and returns subsequent state, this function can then be iterated
-# over infection series (and subsequent state)
 
 matrix_multiply_pre_calc <- function(
   max_weeks = 10
@@ -79,11 +15,11 @@ matrix_multiply_pre_calc <- function(
     filter(
       outcome == "acquisition",
       immunity == "omicron_infection",
-      days %in% seq(0, max_weeks * 7, by = 7) # will need to be changed to weeks
+      days %in% seq(0, max_weeks * 7, by = 7) 
     ) %>%
     pull(ve_predict_mean)
   
-  margin <- c(NA, 0:10)
+  margin <- c(NA, 0:max_weeks)
   
   immunity_matrix <- matrix(
     nrow = length(margin),
@@ -122,6 +58,40 @@ matrix_multiply_pre_calc <- function(
   
 }
 
+# get transition rates into a newly immune state, using *relative* probabilities
+# of transitioning from each state, and the size of each state
+new_immunity_transitions <- function(
+  relative_probabilities,
+  current_state,
+  total_new_immunities
+) {
+  
+  n_states <- length(current_state)
+  stopifnot(length(relative_probabilities) == n_states)
+  
+  # the number of newly immune individuals new_{ij} of a given immunity type j,
+  # coming from each current state i is:
+  #   new_{ij} = new_j * n_i * rel_i / sum_i(n_i * rel_i)
+  # where new_j is the total number of newly immune individuals in the
+  # population, n_i is the number of individuals in current state i,and  rel_i
+  # is the (unnormalised) relative probability of transitioning to newly immune
+  # state j across states j (e.g. relative risk of infection).
+  # Rearranging we have:
+  #   new_{ij} = n_i * (new_j * rel_i / sum_i(n_i * rel_i))
+  # and so the probability prob_{ij} that a random individual in state i moves
+  # into state j is:
+  #   prob_{ij} = new_j * rel_i / sum_i(n_i * rel_i)
+  # because:
+  #   new_{ij} = n_i * prob_{ij}
+  
+  normalisation <- sum(current_state * relative_probabilities)
+  disagg_probabilities <- relative_probabilities / normalisation
+  newly_immune_fraction <- total_new_immunities * disagg_probabilities
+  newly_immune_fraction
+  
+}
+
+
 
 immunity_matrix_multiply <- function(
   weeks_to_consider = 10,
@@ -136,10 +106,10 @@ immunity_matrix_multiply <- function(
   sub_diag_index <- pre_calc_output$sub_diag_index
   
   #recalibrate relative_pr_infection with only the possible states with people
-  relative_pr_infection <- relative_pr_infection * state
-  relative_pr_infection <- relative_pr_infection/sum(relative_pr_infection)
   
-  pr_infection <- relative_pr_infection * weekly_new_infections / population 
+  pr_infection <- new_immunity_transitions(relative_probabilities = relative_pr_infection,
+                           current_state = state,
+                           total_new_immunities = weekly_new_infections/population)
   
   pr_not_infection <- 1 - pr_infection
   
@@ -172,13 +142,20 @@ weekly_new_infections <- daily_new_infections %>%
   summarise(count = sum(count)) %>% 
   pull(count)
 
+nweeks <- length(weekly_new_infections)
+
 #init matrix
+
 this_state <- immunity_matrix_multiply(pre_calc_output = pre_calc_test,
                                        state = c(1,rep(0,11)),
                                        weekly_new_infections = 0,
                                        population = NSW_pop)
 
-for (iter in 1:length(weekly_new_infections)){
+
+immunity_states <- matrix()
+
+
+for (iter in 1:nweeks){
   
   this_state <- immunity_matrix_multiply(state = this_state,
                                          weekly_new_infections = weekly_new_infections[iter],
@@ -198,15 +175,139 @@ total_infection_if_no_reinfection - (1-this_state[1])
 (1-this_state[1])/total_infection_if_no_reinfection
 
 
-this_state_sim_data <- immunity_matrix_multiply(pre_calc_output = pre_calc_test)
-for (iter in 1:10000){
+###
+
+initial_states <- immunity_matrix_multiply(pre_calc_output = pre_calc_test,
+                                           state = c(1,rep(0,11)),
+                                           weekly_new_infections = 0,
+                                           population = NSW_pop)
+
+
+immunity_states <- cbind(
+  initial_states,
+  matrix(
+    nrow = nrow(initial_states),
+    ncol = nweeks
+  )
+)
+
+
+for (iter in 1:nweeks){
   
-  this_state_sim_data <- immunity_matrix_multiply(state = this_state_sim_data,
-                                         weekly_new_infections = 100,
-                                         pre_calc_output = pre_calc_test)
+  immunity_states[,iter+1] <- immunity_matrix_multiply(state = immunity_states[,iter],
+                                                       weekly_new_infections = weekly_new_infections[iter],
+                                                       pre_calc_output = pre_calc_test,
+                                                       population = NSW_pop)
   #print(iter)
 }
-this_state_sim_data
+immunity_states
+
+immunity_pops <- round(immunity_states*NSW_pop)
+
+
+states <- rownames(immunity_pops)
+
+# 
+# #####
+# 
+# initial_states <- immunity_matrix_multiply(pre_calc_output = pre_calc_test,
+#                                            state = c(1,rep(0,11)),
+#                                            weekly_new_infections = 0,
+#                                            population = 1e5)
+# 
+# nweeks <- 10000
+# 
+# immunity_states <- cbind(
+#   initial_states,
+#   matrix(
+#     nrow = nrow(initial_states),
+#     ncol = nweeks
+#   )
+# )
+# 
+# 
+# for (iter in 1:nweeks){
+#   
+#   immunity_states[,iter+1] <- immunity_matrix_multiply(state = immunity_states[,iter],
+#                                                        weekly_new_infections = 100,
+#                                                        pre_calc_output = pre_calc_test,
+#                                                        population = 1e5)
+#   #print(iter)
+# }
+# immunity_states
+
+# immunity_pops <- round(immunity_states*NSW_pop)
+# 
+# 
+# states <- rownames(immunity_pops)
+
+
+
+
+
+ips <- immunity_pops %>%
+  as_tibble %>%
+  mutate(
+    state = states
+  ) %>%
+  pivot_longer(
+    cols = -state,
+    names_prefix = "V",
+    names_to = "week",
+    values_to = "pop"
+  ) %>%
+  mutate(
+    week = as.numeric(week),
+    immune = ifelse(
+      state == "non-immune",
+      FALSE,
+      TRUE
+    ),
+    post_immune = case_when(
+      !immune ~ NA_real_,
+      immune & state == "infection" ~ 0,
+      TRUE ~ as.numeric(sub("_week", "", state))
+    )
+  )
+
+
+ggplot() +
+  geom_line(
+    data = ips %>% filter(immune),
+    aes(
+      x = week,
+      y = pop,
+      colour = post_immune,
+      fill = state
+    )
+  ) +
+  geom_line(
+    data = ips %>% filter(!immune),
+    aes(
+      x = week,
+      y = pop
+    ),
+    colour = "red"
+  )
+
+
+ggplot() +
+  geom_line(
+    data = ips %>% filter(state == "infection"),
+    aes(
+      x = week,
+      y = pop
+    )
+  ) +   geom_line(
+    aes(
+      x = ips %>% pull(week) %>% unique() %>% sort(),
+      y = c(0,weekly_new_infections)
+    ),
+    col = alpha("red",0.5)
+  )
+
+
+
 
 states <- c("nonimmune", "infected", "vaccinated", "infected-vaccinated")
 
@@ -225,5 +326,3 @@ transitions[4, 2] <- "vaccinated"
 
 transitions[4, 1] <- "infection and vaccination"
 transitions
-
-

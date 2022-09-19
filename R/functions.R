@@ -4516,7 +4516,6 @@ get_nndss_linelist <- function(
     )
   
   
-  
   # Generate linelist data
   linelist <- dat %>%
     # notification receive date seems buggy, and is sometimes before the
@@ -4525,20 +4524,51 @@ get_nndss_linelist <- function(
       date_confirmation = pmax(NOTIFICATION_RECEIVE_DATE,
                                NOTIFICATION_DATE,
                                na.rm = TRUE),
-    ) %>%
-    select(
-      date_onset = TRUE_ONSET_DATE,
-      date_detection = SPECIMEN_DATE,
-      date_confirmation,
-      date_quarantine = CV_DATE_ENTERED_QUARANTINE,
-      state = STATE,
-      import_status,
-      postcode_of_acquisition,
-      postcode_of_residence,
-      state_of_acquisition,
-      state_of_residence,
-      interstate_import_cvsi
-    ) %>%
+    )
+  
+  
+  #process test_type if applicable
+  if (data$date_time >= as_date("2022-06-01")) { #picked a tentative threshold
+    linelist <- linelist %>% 
+      mutate(test_type = case_when(CONFIRMATION_STATUS == "PROBABLE" 
+                                   ~ "RAT",
+                                   TRUE 
+                                   ~ "PCR")  %>%
+               select(
+                 date_onset = TRUE_ONSET_DATE,
+                 date_detection = SPECIMEN_DATE,
+                 date_confirmation,
+                 date_quarantine = CV_DATE_ENTERED_QUARANTINE,
+                 state = STATE,
+                 import_status,
+                 postcode_of_acquisition,
+                 postcode_of_residence,
+                 state_of_acquisition,
+                 state_of_residence,
+                 interstate_import_cvsi,
+                 test_type
+               )
+      )
+  }  else {
+    linelist <- linelist %>%
+      select(
+        date_onset = TRUE_ONSET_DATE,
+        date_detection = SPECIMEN_DATE,
+        date_confirmation,
+        date_quarantine = CV_DATE_ENTERED_QUARANTINE,
+        state = STATE,
+        import_status,
+        postcode_of_acquisition,
+        postcode_of_residence,
+        state_of_acquisition,
+        state_of_residence,
+        interstate_import_cvsi
+      )
+  }
+  
+  
+  
+linelist <- linelist %>%
     mutate(
       report_delay = as.numeric(date_confirmation - date_onset),
       date_linelist = as.Date(date, tz = "Australia/Canberra"),
@@ -4814,6 +4844,7 @@ preprocess_nndss_linelist <- function(
         STATE = col_character(),
         POSTCODE = col_double(),
         CONFIRMATION_STATUS = col_character(),
+        LAB_DIAGNOSIS_METHOD = col_character(),
         TRUE_ONSET_DATE = col_date(format = "%d/%m/%Y"),
         SPECIMEN_DATE = col_date(format = "%d/%m/%Y"),
         NOTIFICATION_DATE = col_date(format = "%d/%m/%Y"),
