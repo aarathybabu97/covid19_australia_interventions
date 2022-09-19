@@ -143,8 +143,9 @@ linelist_commonwealth <- linelist_commonwealth %>% dplyr::mutate(daily_notificat
   
   uncount(weights = daily_notification)
 
+get_latest_linelist()
 
-regular_ll <- linelist
+regular_ll <- readRDS(paste0("outputs/",get_latest_linelist()))
 
 #sanity check against dubious dates
 regular_ll <- regular_ll %>% filter(date_confirmation >= "2020-01-01")
@@ -156,7 +157,7 @@ saveRDS(old_delay_cdf,"outputs/old_method_delay_cdf.RDS")
 
 #make into reff data format
 linelist_commonwealth$import_status <- "local"
-
+# filter dates before 2022-01-06 or filter NSW state.
 linelist <- regular_ll %>%
   filter(date_confirmation < "2022-01-06" | state == "NSW")
 
