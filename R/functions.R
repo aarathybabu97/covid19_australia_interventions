@@ -5407,7 +5407,8 @@ reff_model_data <- function(
   notification_delay_cdf = NULL,
   n_weeks_before = NULL,
   start_date = NULL,
-  immunity_effect_path = "outputs/vaccination_effect.RDS"
+  immunity_effect_path = "outputs/vaccination_effect.RDS",
+  ascertainment_level = NULL
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5601,8 +5602,15 @@ linelist <- linelist_raw %>%
   short_detection_prob_mat <- detection_prob_mat[dates_select,]
   short_valid_mat <- valid_mat[dates_select,]
   
-  
+  #load immunity effect
   vaccine_effect_timeseries <- readRDS(immunity_effect_path)
+  
+  if(!is.null(ascertainment_level)) {
+    vaccine_effect_timeseries <- vaccine_effect_timeseries %>% 
+      filter(ascertainment == ascertainment_level) %>% 
+      select(-ascertainment)
+  }
+  
   
   ve_omicron_ba2 <- vaccine_effect_timeseries %>%
     filter(variant == "Omicron BA2") %>%
