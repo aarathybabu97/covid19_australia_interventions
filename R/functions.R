@@ -806,8 +806,10 @@ download_holiday_dates <- function(destination) {
   list(
     "2020" = "https://data.gov.au/data/dataset/b1bc6077-dadd-4f61-9f8c-002ab2cdff10/resource/c4163dc4-4f5a-4cae-b787-43ef0fcf8d8b/download/australian_public_holidays_2020.csv",
     "2021" = "https://data.gov.au/data/dataset/b1bc6077-dadd-4f61-9f8c-002ab2cdff10/resource/2dee10ef-2d0c-44a0-a66b-eb8ce59d9110/download/australian_public_holidays_2021.csv",
-    "2022" = "https://data.gov.au/data/dataset/b1bc6077-dadd-4f61-9f8c-002ab2cdff10/resource/d256f989-8f49-46eb-9770-1c6ee9bd2661/download/australian_public_holidays_2022.csv"
-  ) %>%
+    "2022" = "https://data.gov.au/data/dataset/b1bc6077-dadd-4f61-9f8c-002ab2cdff10/resource/768053da-b12b-4196-8fef-9262829998f3/download/australian_public_holidays_2022.csv",
+    "2023" = "https://data.gov.au/data/dataset/b1bc6077-dadd-4f61-9f8c-002ab2cdff10/resource/d256f989-8f49-46eb-9770-1c6ee9bd2661/download/australian_public_holidays_2023.csv"
+  
+    ) %>%
     lapply(
       read_csv,
       col_types = 
@@ -7040,7 +7042,7 @@ write_local_cases <- function(model_data, dir = "outputs") {
     acquired_in_state = as.vector(model_data$local$cases),
     dow_effect = as.vector(model_data$dow_effect)
   )%>% write.csv(
-    file.path(dir,paste0("local_cases_input_", format(modeldata$dates$linelist, "%Y-%m-%d"), ".csv")),
+    file.path(dir,paste0("local_cases_input_", format(model_data$dates$linelist, "%Y-%m-%d"), ".csv")),
     row.names = FALSE
   )
   
@@ -12459,7 +12461,7 @@ get_infection_efficacies_vax <- function(
       omicron_log10_neut_fold
     )
   
-  
+  gc()
   combined_cohorts <- left_join(
     x = vaccine_cohorts %>%
       filter(!is.na(days_ago)) %>%
@@ -12509,6 +12511,8 @@ get_infection_efficacies_vax <- function(
       weight = weight_v * weight_i
     ) %>%
     select(-days_v, -days_i, -weight_v, -weight_i)
+  
+  gc()
   
   # compute the average neutralisation level (mean log10 neut fold of WT
   # convalescent) in each age group, scenario, and omicron scenario
@@ -12571,6 +12575,8 @@ get_infection_efficacies_vax <- function(
       .groups = "drop"
     )
   
+  gc() 
+  
   # now compute VEs against each outcome, for Omicron and Delta
   ves <- mean_neuts %>%
     left_join(
@@ -12616,6 +12622,8 @@ get_infection_efficacies_vax <- function(
       -c50
     )
   
+  gc() 
+  
   ves
   
 }
@@ -12625,6 +12633,7 @@ get_infection_efficacies_infection_only <- function(vaccine_cohorts,
                                                     variants = c("Omicron BA2", "Omicron BA4/5"),
                                                     neut_immune_escape = 0.44) {
   
+  gc()
   # load omicron parameters in wide format and subset to different parameter sets
   params_wide <- get_omicron_params_wide()
   
@@ -12807,6 +12816,8 @@ get_infection_transmission_effects <- function(vies, coverage) {
   australia_ngm <- baseline_matrix(age_breaks = age_breaks_quantium)
   
   age_band_factor <- levels(vies$age_band)
+  
+  gc() 
   
   # combine coverage and VEs to get transmission reduction for each rollout
   # scenario, and omicron scenario
