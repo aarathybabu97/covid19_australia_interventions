@@ -116,7 +116,10 @@ ve_tables <- tibble(
     )
   )
 
-
+saveRDS(
+  ve_tables,
+  file = "outputs/ve_tables.RDS"
+)
 # expand timeseries to daily and calculate
 
 # blank table of dates, states, variant
@@ -584,7 +587,6 @@ ggplot(vaccinated_population_mean_ve) +
   facet_wrap(~state)
 
 ## Immunity effect -------------
-
 # check if the correct local cases input file is read 
 get_local_cases_input()
 
@@ -667,12 +669,13 @@ omicron_infections <- get_infections(
   state_population
 )
 
+gc()
 
-
-ie_tables <- tibble(
+ie_tables_p1 <- tibble(
   date = seq.Date(
     from = as.Date("2021-12-07"),
-    to = data_date + weeks(16),
+    to = as.Date("2022-08-29"),
+    #data_date + weeks(16),
     by = "1 week"
     #)[22:25] - 1
   ) - 1
@@ -696,17 +699,19 @@ ie_tables <- tibble(
     ies = map(
       .x = cohorts_infection,
       .f = get_infection_efficacies_infection_only
-    ),
+    ))%>%
     # infection_transmission_effects = map2(
     #   .x = ies,
     #   .y = coverage_infection,
     #   .f = get_infection_transmission_effects
     # ),
-    vies = map2(
+
+    mutate(vies = map2(
       .x = cohorts_vaccination,
       .y = cohorts_infection,
       .f = get_infection_efficacies_vax
-    ),
+    )) %>%
+      mutate(
     infection_vaccination_transmission_effects = map2(
       .x = vies,
       .y = coverage_infection,
@@ -714,6 +719,75 @@ ie_tables <- tibble(
     )
   )
 
+gc()
+
+gc()
+
+saveRDS(ie_tables_p1,"outputs/ie_tables_p1.RDS")
+
+rm(ie_tables_p1)
+
+gc()
+gc()
+
+ie_tables_p2 <- tibble(
+  date = seq.Date(
+    from = as.Date("2022-08-30"),
+    to = data_date + weeks(16),
+    by = "1 week"
+    #)[22:25] - 1
+  ) - 1
+)%>%
+  expand_grid(omicron_infections) %>%
+  left_join(
+    y = ve_tables,
+    by = "date"
+  ) %>%
+  rename(cohorts_vaccination = cohorts) %>%
+  mutate(
+    cohorts_infection = map2(
+      .x = omicron_infections,
+      .y = date,
+      .f = get_infection_cohorts_at_date
+    ),
+    coverage_infection = map(
+      .x = cohorts_infection,
+      .f = get_coverage_infection
+    ),
+    ies = map(
+      .x = cohorts_infection,
+      .f = get_infection_efficacies_infection_only
+    ))%>%
+  # infection_transmission_effects = map2(
+  #   .x = ies,
+  #   .y = coverage_infection,
+  #   .f = get_infection_transmission_effects
+  # ),
+  
+  mutate(vies = map2(
+    .x = cohorts_vaccination,
+    .y = cohorts_infection,
+    .f = get_infection_efficacies_vax
+  )) %>%
+  mutate(
+    infection_vaccination_transmission_effects = map2(
+      .x = vies,
+      .y = coverage_infection,
+      .f = get_infection_transmission_effects
+    )
+  )
+
+gc()
+
+saveRDS(ie_tables_p2,"outputs/ie_tables_p2.RDS")
+gc()
+readRDS("outputs/ie_tables_p1.RDS")->ie_tables_p1
+gc()
+
+bind_rows(ie_tables_p1,ie_tables_p2)->ie_tables
+
+
+gc()
 combined_effect_tables <- ie_tables %>%
   rename(coverage_vaccination = coverage) %>%
   #filter(date < "2022-04-01" | ascertainment > 0.2) %>%
@@ -1053,7 +1127,8 @@ combined_effect_timeseries %>%
       x = date,
       y = effect,
       colour = state,
-      linetype = variant
+      linetype = variant,
+      alpha = ascertainment
     ),
     size = 1
   ) +
@@ -1072,7 +1147,7 @@ combined_effect_timeseries %>%
   ) +
   ggtitle(
     label = "Immunity effect",
-    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and Omicron infections, \nassuming time-varying case ascertainment"
+    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and Omicron infections" #, \nassuming time-varying case ascertainment
   ) +
   cowplot::theme_cowplot() +
   cowplot::panel_border(remove = TRUE) +
@@ -1099,7 +1174,7 @@ combined_effect_timeseries %>%
     )
   ) +
   guides(colour = "none") +
-  scale_alpha_manual(values = 1) +
+  scale_alpha_manual("Ascertainment", values = c(0.4, 1)) +
   scale_linetype_manual("Omicron sub-variant",values = c("dotted","solid" )) + 
   scale_y_continuous(
     position = "right",
@@ -1111,12 +1186,12 @@ combined_effect_timeseries %>%
       xintercept = data_date
     )
   ) +
-  geom_vline(
-    data = prop_variant_dates(),
-    aes(xintercept = date),
-    colour = "firebrick1",
-    linetype = 5
-  ) +
+  # geom_vline(
+  #   data = prop_variant_dates(),
+  #   aes(xintercept = date),
+  #   colour = "firebrick1",
+  #   linetype = 5
+  # ) +
   facet_wrap(~state, ncol = 2) 
 
 
