@@ -5402,14 +5402,16 @@ hotel_quarantine_spillover_data <- function() {
 
 # given a raw (unimputed) linelist, prepare all the data needed for modelling
 reff_model_data <- function(
-    linelist_raw = load_linelist(),
-    n_weeks_ahead = 6,
-    inducing_gap = 3,
-    detection_cutoff = 0.95,
-    notification_delay_cdf = NULL,
-    n_weeks_before = NULL,
-    start_date = NULL,
-    immunity_effect_path = "outputs/vaccination_effect.RDS"
+
+  linelist_raw = load_linelist(),
+  n_weeks_ahead = 6,
+  inducing_gap = 3,
+  detection_cutoff = 0.95,
+  notification_delay_cdf = NULL,
+  n_weeks_before = NULL,
+  start_date = NULL,
+  immunity_effect_path = "outputs/vaccination_effect.RDS",
+  ascertainment_level = NULL
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5603,8 +5605,15 @@ reff_model_data <- function(
   short_detection_prob_mat <- detection_prob_mat[dates_select,]
   short_valid_mat <- valid_mat[dates_select,]
   
-  
+  #load immunity effect
   vaccine_effect_timeseries <- readRDS(immunity_effect_path)
+  
+  if(!is.null(ascertainment_level)) {
+    vaccine_effect_timeseries <- vaccine_effect_timeseries %>% 
+      filter(ascertainment == ascertainment_level) %>% 
+      select(-ascertainment)
+  }
+  
   
   ve_omicron_ba2 <- vaccine_effect_timeseries %>%
     filter(variant == "Omicron BA2") %>%
