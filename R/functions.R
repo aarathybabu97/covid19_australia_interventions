@@ -4528,12 +4528,12 @@ get_nndss_linelist <- function(
   
   
   #process test_type if applicable
-  if (data$date_time >= as_date("2022-06-01")) { #picked a tentative threshold
+  if (preprocessed$data$date_time >= as_date("2022-06-01")) { #picked a tentative threshold
     linelist <- linelist %>% 
       mutate(test_type = case_when(CONFIRMATION_STATUS == "PROBABLE" 
                                    ~ "RAT",
                                    TRUE 
-                                   ~ "PCR")  %>%
+                                   ~ "PCR"))  %>%
                select(
                  date_onset = TRUE_ONSET_DATE,
                  date_detection = SPECIMEN_DATE,
@@ -4548,7 +4548,7 @@ get_nndss_linelist <- function(
                  interstate_import_cvsi,
                  test_type
                )
-      )
+      
   }  else {
     linelist <- linelist %>%
       select(
