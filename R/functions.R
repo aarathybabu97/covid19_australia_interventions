@@ -447,20 +447,20 @@ ideal_regions <- function() {
 }
 
 interventions <- function(
-  which = c(
-    "all",
-    "national",
-    "act",
-    "nsw",
-    "nt",
-    "qld",
-    "sa",
-    "tas",
-    "vic",
-    "wa"
-  ),
-  end_dates = FALSE,
-  exclude_after = NA
+    which = c(
+      "all",
+      "national",
+      "act",
+      "nsw",
+      "nt",
+      "qld",
+      "sa",
+      "tas",
+      "vic",
+      "wa"
+    ),
+    end_dates = FALSE,
+    exclude_after = NA
 ) {
   
   which <- match.arg(which)
@@ -806,8 +806,10 @@ download_holiday_dates <- function(destination) {
   list(
     "2020" = "https://data.gov.au/data/dataset/b1bc6077-dadd-4f61-9f8c-002ab2cdff10/resource/c4163dc4-4f5a-4cae-b787-43ef0fcf8d8b/download/australian_public_holidays_2020.csv",
     "2021" = "https://data.gov.au/data/dataset/b1bc6077-dadd-4f61-9f8c-002ab2cdff10/resource/2dee10ef-2d0c-44a0-a66b-eb8ce59d9110/download/australian_public_holidays_2021.csv",
-    "2022" = "https://data.gov.au/data/dataset/b1bc6077-dadd-4f61-9f8c-002ab2cdff10/resource/d256f989-8f49-46eb-9770-1c6ee9bd2661/download/australian_public_holidays_2022.csv"
-  ) %>%
+    "2022" = "https://data.gov.au/data/dataset/b1bc6077-dadd-4f61-9f8c-002ab2cdff10/resource/768053da-b12b-4196-8fef-9262829998f3/download/australian_public_holidays_2022.csv",
+    "2023" = "https://data.gov.au/data/dataset/b1bc6077-dadd-4f61-9f8c-002ab2cdff10/resource/d256f989-8f49-46eb-9770-1c6ee9bd2661/download/australian_public_holidays_2023.csv"
+  
+    ) %>%
     lapply(
       read_csv,
       col_types = 
@@ -1535,20 +1537,20 @@ R0_prior <- function() {
 }
 
 plot_trend <- function(
-  simulations,
-  data,
-  base_colour = grey(0.4),
-  multistate = FALSE,
-  hline_at = 1,
-  ylim = c(0, 6),
-  ybreaks = NULL,
-  intervention_at = interventions(),
-  projection_at = NA,
-  keep_only_rows = NULL,
-  max_date = data$dates$latest_mobility,
-  min_date = NA,
-  plot_voc = FALSE,
-  plot_vax = FALSE
+    simulations,
+    data,
+    base_colour = grey(0.4),
+    multistate = FALSE,
+    hline_at = 1,
+    ylim = c(0, 6),
+    ybreaks = NULL,
+    intervention_at = interventions(),
+    projection_at = NA,
+    keep_only_rows = NULL,
+    max_date = data$dates$latest_mobility,
+    min_date = NA,
+    plot_voc = FALSE,
+    plot_vax = FALSE
 ) {
   
   if(is.na(min_date)){
@@ -2619,13 +2621,13 @@ prop_variant <- function(dates){
 
 # greta sub-model for the component R_eff due to macro- and micro-distancing
 distancing_effect_model <- function(
-  dates,
-  gi_cdf,
-  voc_mixture = c("all", "alpha", "delta", "omicron", "wt"),
-  contact_params,
-  phi_params,
-  beta,
-  p
+    dates,
+    gi_cdf,
+    voc_mixture = c("all", "alpha", "delta", "omicron", "wt"),
+    contact_params,
+    phi_params,
+    beta,
+    p
 ) {
   
   voc_mixture <- match.arg(voc_mixture)
@@ -2679,10 +2681,10 @@ distancing_effect_model <- function(
     prop_omicron_BA4 <- prop_omicron_BA4 * 0 + 1
   }
   
-attach(phi_params)
+  attach(phi_params)
   
-attach(contact_params)
-
+  attach(contact_params)
+  
   phi_star <- prop_wt * 1 + prop_alpha * phi_alpha + prop_delta * phi_delta + prop_omicron * phi_omicron + prop_omicron_BA4 * phi_omicron_BA4
   
   p_star <- p ^ phi_star
@@ -2712,7 +2714,7 @@ attach(contact_params)
   )
   d_t_state <- microdistancing_prob / max(microdistancing_prob)
   
-
+  
   gamma_t_state <- 1 - beta * d_t_state
   
   # compute component of R_eff for local cases
@@ -3266,12 +3268,12 @@ greta_long_to_date_state <- function(long, dates, states) {
 
 # contruct multiple GPs for epsilons in the Reff model
 epsilon_gp <- function(
-  date_nums,
-  n_states,
-  kernel,
-  inducing_date_nums = date_nums,
-  sigma_state = normal(0, 0.5, truncation = c(0, Inf), dim = n_states),
-  tol = 1e-6) {
+    date_nums,
+    n_states,
+    kernel,
+    inducing_date_nums = date_nums,
+    sigma_state = normal(0, 0.5, truncation = c(0, Inf), dim = n_states),
+    tol = 1e-6) {
   
   # whitened representation of GP
   n_inducing <- length(inducing_date_nums)
@@ -3299,9 +3301,9 @@ op <- greta::.internals$nodes$constructors$op
 # cases into the future. Also requires 'disaggregation_probs' giving the density
 # of the serial interval over a sequence of days.
 project_local_cases <- function(
-  infectiousness,
-  R_local,
-  disaggregation_probs
+    infectiousness,
+    R_local,
+    disaggregation_probs
 ) {
   
   if (!identical(dim(infectiousness), dim(R_local))) {
@@ -4228,12 +4230,12 @@ surveillance_effect <- function(dates, states, cdf,
 # of detection of cases. I.e. the multiplicative extra benefit you get from
 # putting cases into isolation before they test positive
 extra_isolation_effect <- function(
-  dates,
-  states,
-  cdf,
-  gi_bounds = c(0, 20),
-  ttd_cdfs = NULL,
-  tti_cdfs = NULL
+    dates,
+    states,
+    cdf,
+    gi_bounds = c(0, 20),
+    ttd_cdfs = NULL,
+    tti_cdfs = NULL
 ) {
   
   # compute the surveillance effect
@@ -4302,11 +4304,11 @@ impute_one_onset <- function(confirmation_date,
 }
 
 impute_onsets_old <- function(confirmation_dates,
-                          states,
-                          notification_delay_cdf,
-                          method = c("expected", "random"),
-                          min_days = -10,
-                          max_days = 40) {
+                              states,
+                              notification_delay_cdf,
+                              method = c("expected", "random"),
+                              min_days = -10,
+                              max_days = 40) {
   
   method <- match.arg(method)
   onset_dates <- mapply(
@@ -4412,8 +4414,8 @@ lga_to_state <- function (lga) {
 }
 
 linelist_date_times <- function(
-  dir,
-  name_pattern = "^COVID-19 UoM "
+    dir,
+    name_pattern = "^COVID-19 UoM "
 ) {
   # find the files
   files <- list.files(dir, pattern = c(".xlsx*$|.csv$"), full.names = TRUE)
@@ -4447,14 +4449,14 @@ sync_nndss <- function(mount_dir = "~/Mounts/nndss", storage_dir = "~/not_synced
 
 # process the read-in nndss linelist 
 get_nndss_linelist <- function(
-  date = NULL,
-  dir = "~/not_synced/nndss",
-  strict = TRUE,
-  #missing_location_assumption = "imported"
-  missing_location_assumption = "local",
-  #missing_location_assumption = "missing",
-  location_conflict_assumption = "local",
-  preprocessed = NULL
+    date = NULL,
+    dir = "~/not_synced/nndss",
+    strict = TRUE,
+    #missing_location_assumption = "imported"
+    missing_location_assumption = "local",
+    #missing_location_assumption = "missing",
+    location_conflict_assumption = "local",
+    preprocessed = NULL
 ) {
   
   if (is.null(preprocessed)) {
@@ -4526,12 +4528,12 @@ get_nndss_linelist <- function(
   
   
   #process test_type if applicable
-  if (data$date_time >= as_date("2022-06-01")) { #picked a tentative threshold
+  if (preprocessed$data$date_time >= as_date("2022-06-01")) { #picked a tentative threshold
     linelist <- linelist %>% 
       mutate(test_type = case_when(CONFIRMATION_STATUS == "PROBABLE" 
                                    ~ "RAT",
                                    TRUE 
-                                   ~ "PCR")  %>%
+                                   ~ "PCR"))  %>%
                select(
                  date_onset = TRUE_ONSET_DATE,
                  date_detection = SPECIMEN_DATE,
@@ -4546,7 +4548,7 @@ get_nndss_linelist <- function(
                  interstate_import_cvsi,
                  test_type
                )
-      )
+      
   }  else {
     linelist <- linelist %>%
       select(
@@ -4605,13 +4607,13 @@ linelist <- linelist %>%
 
 # read in the latest linelist and format for analysis
 preprocess_nndss_linelist <- function(
-  date = NULL,
-  dir = "~/not_synced/nndss",
-  strict = TRUE,
-  #missing_location_assumption = "imported"
-  missing_location_assumption = "local",
-  #missing_location_assumption = "missing",
-  location_conflict_assumption = "local"
+    date = NULL,
+    dir = "~/not_synced/nndss",
+    strict = TRUE,
+    #missing_location_assumption = "imported"
+    missing_location_assumption = "local",
+    #missing_location_assumption = "missing",
+    location_conflict_assumption = "local"
 ) {
   
   data <- linelist_date_times(dir)
@@ -5208,8 +5210,8 @@ col_nsw_date <- function(type = c("short", "long")) {
 
 # get latest NSW linelist
 get_nsw_linelist <- function (
-  file = NULL,
-  nindss_compatible = TRUE
+    file = NULL,
+    nindss_compatible = TRUE
 ) {
   
   if(is.null(file)){
@@ -5335,12 +5337,12 @@ get_nsw_linelist <- function (
 # isolated by each day post infection) and convolve the cases to get the
 # combined infectiousness in each date and state.
 gi_convolution <- function(
-  cases,
-  dates,
-  states,
-  gi_cdf,
-  # ttd_cdfs,
-  gi_bounds = c(0, 20)
+    cases,
+    dates,
+    states,
+    gi_cdf,
+    # ttd_cdfs,
+    gi_bounds = c(0, 20)
 ) {
   
   n_dates <- length(dates)
@@ -5400,6 +5402,7 @@ hotel_quarantine_spillover_data <- function() {
 
 # given a raw (unimputed) linelist, prepare all the data needed for modelling
 reff_model_data <- function(
+
   linelist_raw = load_linelist(),
   n_weeks_ahead = 6,
   inducing_gap = 3,
@@ -5420,12 +5423,12 @@ reff_model_data <- function(
   if (is.null(notification_delay_cdf)) {
     notification_delay_cdf <- get_notification_delay_cdf(linelist_raw)
   }
-
+  
   
   # impute onset dates and infection dates using this
-linelist <- linelist_raw %>%
+  linelist <- linelist_raw %>%
     impute_linelist(notification_delay_cdf = notification_delay_cdf)
-
+  
   # truncate mobility data to no later than the day before the linelist (needed
   # for modelling on historic linelists) and then get the most recent date
   latest_mobility_date <- mobility_data %>%
@@ -5445,15 +5448,15 @@ linelist <- linelist_raw %>%
   
   
   if (is.null(n_weeks_before) & is.null(start_date)) 
-    {earliest_date <- linelist_start_date}
+  {earliest_date <- linelist_start_date}
   if (is.null(n_weeks_before) & !is.null(start_date)) 
-    {earliest_date <- start_date}
+  {earliest_date <- start_date}
   if (!is.null(n_weeks_before) & is.null(start_date)) 
-    {earliest_date <- linelist_date - n_weeks_before*7}
+  {earliest_date <- linelist_date - n_weeks_before*7}
   if (!is.null(n_weeks_before) & !is.null(start_date)) 
-    {earliest_date <- NULL}
-
-
+  {earliest_date <- NULL}
+  
+  
   if (is.null(earliest_date)) {stop("conflict between n_weeks_before and start_date!")}
   #all the dates below corresponds to the shortened period 
   states <- sort(unique(linelist$state))
@@ -5487,7 +5490,7 @@ linelist <- linelist_raw %>%
   last_detectable_idx <- which(!apply(detectable, 1, any))[1]
   latest_infection_date <- full_dates[ifelse(is.na(last_detectable_idx), length(full_dates), last_detectable_idx)]
   
-
+  
   # those infected in the state
   local_cases <- linelist %>%
     filter(!interstate_import) %>%
@@ -5507,25 +5510,25 @@ linelist <- linelist_raw %>%
   dow_effect[] <- 1
   
   dow_effect[full_dates>=linelist_start_date,] <- apply(local_cases[full_dates>=linelist_start_date,],
-                                                     2,
-                                                     FUN = function(x){
-                                                       m <- glm(
-                                                         x ~ factor(week_count) + factor(dow),
-                                                         family = stats::poisson
-                                                       )
-                                                       trend_estimate <- tibble(
-                                                         week_count = 1,
-                                                         dow = dow
-                                                       ) %>%
-                                                         mutate(
-                                                           effect = predict(
-                                                             m,
-                                                             newdata = .,
-                                                             type = "response"
-                                                           ),
-                                                           effect = effect / mean(effect[1:7])
-                                                         )
-                                                       trend_estimate$effect}
+                                                        2,
+                                                        FUN = function(x){
+                                                          m <- glm(
+                                                            x ~ factor(week_count) + factor(dow),
+                                                            family = stats::poisson
+                                                          )
+                                                          trend_estimate <- tibble(
+                                                            week_count = 1,
+                                                            dow = dow
+                                                          ) %>%
+                                                            mutate(
+                                                              effect = predict(
+                                                                m,
+                                                                newdata = .,
+                                                                type = "response"
+                                                              ),
+                                                              effect = effect / mean(effect[1:7])
+                                                            )
+                                                          trend_estimate$effect}
   )
   
   
@@ -5565,7 +5568,7 @@ linelist <- linelist_raw %>%
     #ttd_cdfs = tti_cdfs
   )
   
- imported_infectiousness <- gi_convolution(
+  imported_infectiousness <- gi_convolution(
     imported_cases_corrected,
     dates = full_dates,
     states = states,
@@ -5734,7 +5737,7 @@ linelist <- linelist_raw %>%
     mutate(across(-date, ~ replace_na(.x, 1))) %>% # 100% FOR PRE DEC 2021
     dplyr::select(-date) %>%
     as.matrix
-
+  
   # return a named, nested list of these objects
   list(
     local = list(
@@ -5818,21 +5821,21 @@ TP_params <- function(){
   phi_omicron <- phi_delta * phi_omicron_delta
   phi_omicron_BA4 <- phi_omicron * phi_omicron_BA2_BA4
   
-           
-           
-module(log_q,
-       contact_params = module(
-       HC_0,
-       HD_0,
-       OD_0
-       ),
-       beta,
-       p,
-       phi_params = module(
-       phi_alpha,
-       phi_delta,
-       phi_omicron,
-       phi_omicron_BA4))
+  
+  
+  module(log_q,
+         contact_params = module(
+           HC_0,
+           HD_0,
+           OD_0
+         ),
+         beta,
+         p,
+         phi_params = module(
+           phi_alpha,
+           phi_delta,
+           phi_omicron,
+           phi_omicron_BA4))
 }
 
 TP_only_likelihood <- function(data,
@@ -5892,7 +5895,7 @@ TP_only_calculations <- function(data,
   )
   q_index <- c(q_index, rep(3, data$n_date_nums - data$n_dates))
   
-
+  
   log_Qt <- params$log_q[q_index]
   
   # The change in R_t for locally-acquired cases due to social distancing
@@ -5930,16 +5933,16 @@ TP_only_calculations <- function(data,
   R_eff_imp_1 <- exp(log_R_eff_imp_1)
   
   
-module(
-      R_eff_loc_1,
-      R_eff_imp_1,
-      log_R0,
-      log_Qt,
-      distancing_effect,
-      surveillance_reff_local_reduction#,
-      #extra_isolation_local_reduction,
-    )
-
+  module(
+    R_eff_loc_1,
+    R_eff_imp_1,
+    log_R0,
+    log_Qt,
+    distancing_effect,
+    surveillance_reff_local_reduction#,
+    #extra_isolation_local_reduction,
+  )
+  
   
 }
 
@@ -6404,12 +6407,12 @@ constrain_run_length <- function(x, min_run_length = 7) {
 }
 
 reff_plotting_sims <- function(
-  fitted_model,
-  #vaccine_timeseries = vaccine_effect_timeseries,
-  nsim = 10000,
-  plot_reff_trajectory = TRUE,
-  plot_TP_trajectory = TRUE)
-  {
+    fitted_model,
+    #vaccine_timeseries = vaccine_effect_timeseries,
+    nsim = 10000,
+    plot_reff_trajectory = TRUE,
+    plot_TP_trajectory = TRUE)
+{
   # add counterfactuals to the model object:
   # add fitted_model_extended obect because fitted_model is modified
   fitted_model_extended <- fitted_model
@@ -6424,12 +6427,12 @@ reff_plotting_sims <- function(
     fitted_model_extended$greta_arrays <- c(
       fitted_model$greta_arrays,
       list(R_eff_12_1_ratio = reff_C12_C1_ratio(fitted_model_extended)
-    )
+      )
     )
     reff_trajectory <- c("R_eff_12_1_ratio",
-                        "R_eff_loc_12",
-                        "R_eff_imp_12",
-                        "epsilon_L")
+                         "R_eff_loc_12",
+                         "R_eff_imp_12",
+                         "epsilon_L")
   } else { reff_trajectory <- NULL }
   if (plot_TP_trajectory) {
     
@@ -6449,18 +6452,18 @@ reff_plotting_sims <- function(
     )
     
     TP_trajectory <- c("R_eff_loc_1",
-                      "R_eff_imp_1",
-                      "R_eff_loc_1_micro",
-                      "R_eff_loc_1_macro",
-                      "R_eff_loc_1_surv",
-                      "R_eff_loc_1_iso",
-                      "R_eff_loc_1_ttiq",
-                      "R_eff_loc_1_vaccine_only",
-                      "R_eff_loc_1_without_vaccine")
+                       "R_eff_imp_1",
+                       "R_eff_loc_1_micro",
+                       "R_eff_loc_1_macro",
+                       "R_eff_loc_1_surv",
+                       "R_eff_loc_1_iso",
+                       "R_eff_loc_1_ttiq",
+                       "R_eff_loc_1_vaccine_only",
+                       "R_eff_loc_1_without_vaccine")
   } else { TP_trajectory <- NULL }
   # flatten all relevant greta array matrices to vectors before calculating
   trajectory_types <- c(
-TP_trajectory,reff_trajectory
+    TP_trajectory,reff_trajectory
   )
   vector_list <- lapply(fitted_model_extended$greta_arrays[trajectory_types], c)
   
@@ -6474,17 +6477,17 @@ TP_trajectory,reff_trajectory
 # function to calculate, plot, and save all the outputs (with flags for plot
 # types) - pass in an optional maximum date argument
 reff_plotting <- function(
-  fitted_model,
-  dir = "outputs",
-  subdir = "figures",
-  min_date = data$dates$earliest,
-  #min_date = NA,
-  max_date = fitted_model$data$dates$latest_mobility,
-  mobility_extrapolation_rectangle = TRUE,
-  projection_date = NA,
-  washout_cutoff = 0,
-  vaccine_timeseries = vaccine_effect_timeseries,
-  sims = NULL
+    fitted_model,
+    dir = "outputs",
+    subdir = "figures",
+    min_date = data$dates$earliest,
+    #min_date = NA,
+    max_date = fitted_model$data$dates$latest_mobility,
+    mobility_extrapolation_rectangle = TRUE,
+    projection_date = NA,
+    washout_cutoff = 0,
+    vaccine_timeseries = vaccine_effect_timeseries,
+    sims = NULL
 ) {
   
   if(is.null(sims)){
@@ -6944,11 +6947,11 @@ hard_clamp <- function(local_samples, target_date) {
 
 # output simulations
 write_reff_sims <- function(
-  fitted_model,
-  dir = "outputs/projection",
-  write_reff_1 = TRUE,
-  write_reff_12 = TRUE,
-  write_reff_2 = FALSE
+    fitted_model,
+    dir = "outputs/projection",
+    write_reff_1 = TRUE,
+    write_reff_12 = TRUE,
+    write_reff_2 = FALSE
 ) {
   
   if (write_reff_1) {
@@ -7079,10 +7082,34 @@ write_local_cases <- function(model_data, dir = "outputs") {
     acquired_in_state = as.vector(model_data$local$cases),
     dow_effect = as.vector(model_data$dow_effect)
   )%>% write.csv(
-    file.path(dir,paste0("local_cases_input_", format(Sys.time(), "%Y-%m-%d"), ".csv")),
+    file.path(dir,paste0("local_cases_input_", format(model_data$dates$linelist, "%Y-%m-%d"), ".csv")),
     row.names = FALSE
   )
   
+}
+
+
+# Get local cases input 
+
+get_local_cases_input <-  function() {
+  f = list.files(pattern="local_cases_input.*csv", path="outputs/",   
+                 full.names = FALSE
+  ) 
+  local_cases_dates<- parsedate::parse_date((f))%>%as.Date
+  latest_local_cases_input<- f[which.max(local_cases_dates)]
+  return(latest_local_cases_input)
+}
+
+
+# Get latest linelist 
+
+get_latest_linelist<-  function() {
+  file <-  list.files(pattern="linelist.*RDS", path="outputs/",   
+                      full.names = FALSE
+  ) 
+  all_linelists_dates<- parsedate::parse_date((file))%>%as.Date
+  latest_linelist<- file[which.max(all_linelists_dates)]
+  return(latest_linelist)
 }
 
 # convert any new linelist files into formatted case data in past_cases
@@ -7845,8 +7872,8 @@ save_ggplot <- function (filename,
 
 # prep a spatial layer with Victorian LGAs and their populations
 prep_state_lgas <- function(
-  state = "Victoria",
-  out_dir = "data/spatial"
+    state = "Victoria",
+    out_dir = "data/spatial"
 ) {
   
   state_short <- abbreviate_states(state)
@@ -8567,13 +8594,13 @@ count_in_window <- function(target_date, states, delay_data, window, date_tabula
 }
 
 get_window_size <- function(
-  target_date,
-  states,
-  delay_data,
-  date_tabulation,
-  n_min = 500,
-  window_min = 7,
-  window_max = 42
+    target_date,
+    states,
+    delay_data,
+    date_tabulation,
+    n_min = 500,
+    window_min = 7,
+    window_max = 42
 ) {
   
   dates <- delay_data %>%
@@ -8753,22 +8780,22 @@ get_cis <- function(date, state, ecdf, weight, use_national) {
 #   either of the dates are NA, the earliest (or latest) dates in the linelist
 #   are used
 estimate_delays <- function(
-  state,
-  date,
-  delay,
-  all_dates = NULL,
-  all_states = NULL,
-  direction = c("forward", "backward"),
-  min_records = 500,
-  absolute_min_records = 100,
-  min_window = 7,
-  max_window = 56,
-  national_exclusions = tibble(
-    state = "VIC",
-    start = as.Date("2020-06-14"),
-    end   = as.Date("2020-12-01")
-  ),
-  revert_to_national = TRUE
+    state,
+    date,
+    delay,
+    all_dates = NULL,
+    all_states = NULL,
+    direction = c("forward", "backward"),
+    min_records = 500,
+    absolute_min_records = 100,
+    min_window = 7,
+    max_window = 56,
+    national_exclusions = tibble(
+      state = "VIC",
+      start = as.Date("2020-06-14"),
+      end   = as.Date("2020-12-01")
+    ),
+    revert_to_national = TRUE
 ) {
   
   direction <- match.arg(direction)
@@ -8936,14 +8963,14 @@ estimate_delays <- function(
 
 # plot changing delay distributions by state over time
 plot_delays <- function(
-  delay_distributions,
-  date,
-  state,
-  delay,
-  ylim = c(0, 20),
-  hline_at = 0,
-  intervention_at = interventions(), 
-  base_colour = yellow
+    delay_distributions,
+    date,
+    state,
+    delay,
+    ylim = c(0, 20),
+    hline_at = 0,
+    intervention_at = interventions(), 
+    base_colour = yellow
 ) {
   
   
@@ -9073,9 +9100,9 @@ gaussian_smooth <- function (values, sd = 1, ...) {
 # fit a generalised additive model for the trend and return a dataframe with the
 # modelled mobility trend for all dates between min_date and max_date
 predict_mobility_trend <- function(
-  mobility,
-  min_date = min(mobility$date),
-  max_date = max(mobility$date)
+    mobility,
+    min_date = min(mobility$date),
+    max_date = max(mobility$date)
 ) {
   
   print(mobility$state[[1]])
@@ -9334,8 +9361,8 @@ download_tidycovid <- function() {
 
 
 fit_survey_gam <- function(
-  fit_dat,
-  pred_dat
+    fit_dat,
+    pred_dat
 ){
   
   respondents <- fit_dat$respondents
@@ -9824,9 +9851,9 @@ age_classes <- function(final_age_bin = 80, by = 5) {
 }
 
 get_age_distribution <- function(
-  final_age_bin = 85,
-  by = 5,
-  population_total = 25693000
+    final_age_bin = 85,
+    by = 5,
+    population_total = 25693000
 ) {
   
   # check the final age bin in sensible
@@ -10020,16 +10047,16 @@ combine_efficacy <- function(infection, transmission) {
 # proportion_pf and proportion_2_dose are only used if the other proportion
 # arguments are not specified
 average_efficacy <- function(
-  efficacy_pf_2_dose = 0.9685,
-  efficacy_az_2_dose = 0.93,
-  efficacy_pf_1_dose = 0.8317,
-  efficacy_az_1_dose = 0.892,
-  proportion_pf = 0.5,
-  proportion_2_dose = 0.2,
-  proportion_pf_2_dose = proportion_pf * proportion_2_dose,
-  proportion_az_2_dose = (1 - proportion_pf) * proportion_2_dose,
-  proportion_pf_1_dose = proportion_pf * (1 - proportion_2_dose),
-  proportion_az_1_dose = (1 - proportion_pf) * (1 - proportion_2_dose)
+    efficacy_pf_2_dose = 0.9685,
+    efficacy_az_2_dose = 0.93,
+    efficacy_pf_1_dose = 0.8317,
+    efficacy_az_1_dose = 0.892,
+    proportion_pf = 0.5,
+    proportion_2_dose = 0.2,
+    proportion_pf_2_dose = proportion_pf * proportion_2_dose,
+    proportion_az_2_dose = (1 - proportion_pf) * proportion_2_dose,
+    proportion_pf_1_dose = proportion_pf * (1 - proportion_2_dose),
+    proportion_az_1_dose = (1 - proportion_pf) * (1 - proportion_2_dose)
 ) {
   
   # based on Pritchard MedRXiv / Harris via ATAGI advice paper
@@ -10077,9 +10104,9 @@ average_transmission_efficacy <- function() {
 
 
 vaccination_transmission_effect <- function(
-  age_coverage,
-  efficacy_mean,
-  next_generation_matrix
+    age_coverage,
+    efficacy_mean,
+    next_generation_matrix
 ) {
   # given vaccination coverage in each age group, the average vaccine efficacy (by
   # age or overall), and the baseline next generation matrix, compute the
@@ -10103,9 +10130,9 @@ vaccination_transmission_effect <- function(
 }
 
 vaccination_ifr_effect <- function(
-  age_coverage,
-  efficacy_mean,
-  ifr
+    age_coverage,
+    efficacy_mean,
+    ifr
 ) {
   
   age_structure <- get_age_distribution(80)
@@ -10134,11 +10161,11 @@ vaccination_ifr_effect <- function(
 
 
 summarise_effect <- function(
-  n_doses,
-  age_populations,
-  age_distribution,
-  next_generation_matrix,
-  ifr
+    n_doses,
+    age_populations,
+    age_distribution,
+    next_generation_matrix,
+    ifr
 ) {
   
   # Given a number of doses, compute vaccine coverage in each age group, the
@@ -10174,11 +10201,11 @@ summarise_effect <- function(
 
 
 overall_transmission_effect <- function (
-  n_doses,
-  age_populations,
-  age_distribution,
-  next_generation_matrix,
-  ifr
+    n_doses,
+    age_populations,
+    age_distribution,
+    next_generation_matrix,
+    ifr
 ) {
   all_effects <- summarise_effect(
     n_doses,
@@ -10191,11 +10218,11 @@ overall_transmission_effect <- function (
 }
 
 overall_ifr_effect <- function (
-  n_doses,
-  age_populations,
-  age_distribution,
-  next_generation_matrix,
-  ifr
+    n_doses,
+    age_populations,
+    age_distribution,
+    next_generation_matrix,
+    ifr
 ) {
   all_effects <- summarise_effect(
     n_doses,
@@ -10245,7 +10272,7 @@ extract_over_70_ifr_effect <- function(x, which = c("odriscoll", "brazeau")) {
 
 
 load_air_data <- function(
-  data_dir = "~/not_synced/vaccination/vaccination_data_with_booster/"
+    data_dir = "~/not_synced/vaccination/vaccination_data_with_booster/"
 ){
   
   do_dir <- file.path(data_dir, "dose_ordering") 
@@ -10470,12 +10497,12 @@ load_air_data <- function(
 }
 
 simulate_variant <- function(
-  .fitted_model = fitted_model,
-  dir = "outputs/projection/",
-  subdir = NA,
-  ratio_samples = FALSE,
-  variant = c("wt", "alpha", "delta", "omicron"),
-  vax_effect = NULL
+    .fitted_model = fitted_model,
+    dir = "outputs/projection/",
+    subdir = NA,
+    ratio_samples = FALSE,
+    variant = c("wt", "alpha", "delta", "omicron"),
+    vax_effect = NULL
 ){
   
   variant <- match.arg(variant)
@@ -10707,7 +10734,7 @@ hist_prior_posterior <- function(greta_array, draws, nsim = 1000, ...)  {
 }
 
 read_reff_samples <- function(
-  sample.file
+    sample.file
 ){
   
   read.csv(sample.file) %>%
@@ -10902,9 +10929,9 @@ load_cumulative_doses_old <- function(dir = "~/not_synced/vaccination/vaccinatio
 }
 
 immunity_lag_correction <- function(
-  date,
-  doses,
-  dose_number
+    date,
+    doses,
+    dose_number
 ) {
   
   if (dose_number[1] == 1) {
@@ -10968,10 +10995,10 @@ age_lookup <- tibble::tribble(
 )
 
 get_age_distribution_by_state <- function(
-  final_age_bin = 80,
-  by = 5,
-  population_total = 25693000,
-  ages = NULL
+    final_age_bin = 80,
+    by = 5,
+    population_total = 25693000,
+    ages = NULL
 ) {
   
   if(is.null(ages)){
@@ -11102,8 +11129,8 @@ get_age_distribution_by_state <- function(
 
 
 write_reff_sims_vax <- function(
-  fitted_model,
-  vaccine_timeseries
+    fitted_model,
+    vaccine_timeseries
 ){
   
   # ESSENTIALLY DEPRECATED
@@ -11140,8 +11167,8 @@ write_reff_sims_vax <- function(
 
 
 write_reff_sims_novax <- function(
-  fitted_model#,
-  #vaccine_timeseries
+    fitted_model#,
+    #vaccine_timeseries
 ){
   
   # removes vaccination effect from C1 if fitted with it
@@ -11191,6 +11218,21 @@ state_short_long_table <- tibble::tribble(
   "WA", "Western Australia"
 )
 
+
+# get qld health data dates 
+
+get_qld_data_dates <- function(){
+  files <- list.files(pattern = "nocs_freya.|rats_freya.*csv", path="~/not_synced/qld/",   
+                      full.names = FALSE) 
+  qld_data_dates <- sub("\\..*", "", files) %>%
+    str_sub(start = -8) %>%
+    as.numeric() %>%
+    dmy()%>%
+    max()%>%
+    as.character("%d%m%Y")
+  
+  return(qld_data_dates)  
+}
 
 get_quantium_lookups <- function(dir) {
   
@@ -11269,7 +11311,7 @@ get_quantium_data_dates <- function(){
 
 
 get_quantium_data_dir <- function(
-  date = NULL
+    date = NULL
 ){
   # get most recent forecast
   dir_dates <- get_quantium_data_dates()
@@ -11294,7 +11336,7 @@ get_quantium_data_dir <- function(
 }
 
 read_quantium_vaccination_data <- function(
-  date = NULL
+    date = NULL
 ){
   
   dir <- get_quantium_data_dir(date)
@@ -11729,11 +11771,11 @@ get_coverage <- function(vaccine_cohorts) {
 }
 
 get_omicron_params_wide <- function(
-  # param_file = NULL
+    # param_file = NULL
 ) {
   
   # if(is.null(param_file)){
-    param_file <- "outputs/scenario_parameters_omicron.csv"
+  param_file <- "outputs/scenario_parameters_omicron.csv"
   # } else if (param_file == "infection") {
   #   param_file <- "outputs/scenario_parameters_omicron_infection_assumption.csv"
   # }
@@ -11765,13 +11807,13 @@ log10_neut_over_time <- function (time, maximum_log10_neut, decay){
 }
 
 ve_from_mean_log10_neut <- function(
-  mean_log10_neut_vec,
-  sd_log10_neut,
-  log_k,
-  c50_vec,
-  method = c("adaptive", "gaussian"),
-  lower = -10,
-  upper = 10
+    mean_log10_neut_vec,
+    sd_log10_neut,
+    log_k,
+    c50_vec,
+    method = c("adaptive", "gaussian"),
+    lower = -10,
+    upper = 10
 ) {
   
   # choose the method and dispatch to the appropriate integration function
@@ -11797,12 +11839,12 @@ ve_from_mean_log10_neut <- function(
 }
 
 gaussian_ve_integrator <- function(
-  c50_vec,
-  mean_log10_neut_vec,
-  sd_log10_neut,
-  log_k,
-  lower,
-  upper
+    c50_vec,
+    mean_log10_neut_vec,
+    sd_log10_neut,
+    log_k,
+    lower,
+    upper
 ) {
   
   # dimensions and quadrature rules
@@ -11854,12 +11896,12 @@ gaussian_ve_integrator <- function(
 }
 
 adaptive_ve_integrator <- function(
-  c50_vec,
-  mean_log10_neut_vec,
-  sd_log10_neut,
-  log_k,
-  lower,
-  upper
+    c50_vec,
+    mean_log10_neut_vec,
+    sd_log10_neut,
+    log_k,
+    lower,
+    upper
 ) {
   
   
@@ -12186,7 +12228,7 @@ get_vaccine_transmission_effects <- function(ves, coverage) {
 
 
 split_ticks_and_labels <- function(
-  # data can be vector of dates or dataframe/tibble with date column
+    # data can be vector of dates or dataframe/tibble with date column
   data,
   tick_freq = "1 month",
   label_freq = "2 months",
@@ -12240,11 +12282,11 @@ split_ticks_and_labels <- function(
 }
 
 get_infections <- function(
-  local_cases,
-  constant_ascertainment = TRUE,
-  ascertainment_rates = 0.5,
-  time_varying_ascertainment = date_state_ascertainment,
-  state_population
+    local_cases,
+    constant_ascertainment = TRUE,
+    ascertainment_rates = 0.5,
+    time_varying_ascertainment = date_state_ascertainment,
+    state_population
 ){
   
   if (constant_ascertainment) {
@@ -12428,10 +12470,10 @@ get_coverage_infection <- function(infection_cohort) {
 
 
 get_infection_efficacies_vax <- function(
-  vaccine_cohorts,
-  infection_cohorts, 
-  variants = c("Omicron BA2", "Omicron BA4/5"),
-  neut_immune_escape = 0.44
+    vaccine_cohorts,
+    infection_cohorts, 
+    variants = c("Omicron BA2", "Omicron BA4/5"),
+    neut_immune_escape = 0.44
 ) {
   
   # load omicron parameters in wide format and subset to different parameter sets
@@ -12459,7 +12501,7 @@ get_infection_efficacies_vax <- function(
       omicron_log10_neut_fold
     )
   
-  
+  gc()
   combined_cohorts <- left_join(
     x = vaccine_cohorts %>%
       filter(!is.na(days_ago)) %>%
@@ -12509,6 +12551,8 @@ get_infection_efficacies_vax <- function(
       weight = weight_v * weight_i
     ) %>%
     select(-days_v, -days_i, -weight_v, -weight_i)
+  
+  gc()
   
   # compute the average neutralisation level (mean log10 neut fold of WT
   # convalescent) in each age group, scenario, and omicron scenario
@@ -12571,6 +12615,8 @@ get_infection_efficacies_vax <- function(
       .groups = "drop"
     )
   
+  gc() 
+  
   # now compute VEs against each outcome, for Omicron and Delta
   ves <- mean_neuts %>%
     left_join(
@@ -12616,6 +12662,8 @@ get_infection_efficacies_vax <- function(
       -c50
     )
   
+  gc() 
+  
   ves
   
 }
@@ -12625,6 +12673,7 @@ get_infection_efficacies_infection_only <- function(vaccine_cohorts,
                                                     variants = c("Omicron BA2", "Omicron BA4/5"),
                                                     neut_immune_escape = 0.44) {
   
+  gc()
   # load omicron parameters in wide format and subset to different parameter sets
   params_wide <- get_omicron_params_wide()
   
@@ -12808,6 +12857,8 @@ get_infection_transmission_effects <- function(vies, coverage) {
   
   age_band_factor <- levels(vies$age_band)
   
+  gc() 
+  
   # combine coverage and VEs to get transmission reduction for each rollout
   # scenario, and omicron scenario
   vies %>%
@@ -12899,11 +12950,11 @@ get_infection_transmission_effects <- function(vies, coverage) {
 
 
 combine_transmission_effects <- function(
-  ves,
-  coverage_vaccination,
-  ies,
-  coverage_infection,
-  vies
+    ves,
+    coverage_vaccination,
+    ies,
+    coverage_infection,
+    vies
 ) {
   
   # load quantium lookup tables
@@ -13131,8 +13182,8 @@ ggsave <- function(..., bg = 'white') ggplot2::ggsave(..., bg = bg)
 
 
 impute_linelist <- function(
-  linelist,
-  notification_delay_cdf
+    linelist,
+    notification_delay_cdf
 ) {
   ll <- linelist %>%
     arrange(state, date_confirmation, date_onset)
@@ -13164,13 +13215,13 @@ impute_linelist <- function(
 }
 
 impute_onsets <- function(
-  confirmation_dates,
-  states,
-  n_onsets,
-  notification_delay_cdf,
-  method = c("expected", "random"),
-  min_days = -10,
-  max_days = 40
+    confirmation_dates,
+    states,
+    n_onsets,
+    notification_delay_cdf,
+    method = c("expected", "random"),
+    min_days = -10,
+    max_days = 40
 ){
   
   method <- match.arg(method)
@@ -13195,13 +13246,13 @@ impute_onsets <- function(
 }
 
 impute_many_onsets <- function(
-  confirmation_date,
-  state,
-  notification_delay_cdf,
-  method = c("expected", "random"),
-  min_days = -10,
-  max_days = 40,
-  n_onsets = 1
+    confirmation_date,
+    state,
+    notification_delay_cdf,
+    method = c("expected", "random"),
+    min_days = -10,
+    max_days = 40,
+    n_onsets = 1
 ) {
   
   method <- match.arg(method)
@@ -13229,4 +13280,3 @@ impute_many_onsets <- function(
   return(onset_dates)
   
 }
-
