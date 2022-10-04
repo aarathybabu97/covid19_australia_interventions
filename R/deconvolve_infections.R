@@ -242,7 +242,7 @@ nsw_daily_admit <- as.data.frame(table(nsw_clinic_linelist_calculation_period$ad
 # ggsave("outputs/figures/admission_linelist_compare.png", bg = 'white')
 
 #get daily infection from local cases input
-nsw_daily_infect <- read_csv("outputs/local_cases_input.csv") %>% 
+nsw_daily_infect <- readr::read_csv(paste0("outputs/",get_local_cases_input())) %>% 
   filter(date_onset < date & date_onset >= min(nsw_daily_admit$date), state == "NSW")
 
 

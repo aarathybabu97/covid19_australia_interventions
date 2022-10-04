@@ -89,7 +89,7 @@ delta_combined <- read_csv(paste0("outputs/projection/delta_combined/r_eff_1_loc
                           date_onset = col_date(format = "")
                         )) 
 
-start.date <- ymd("2021-02-01")
+start.date <- ymd("2021-06-01")
 end.date <- the.date
 date.label.format <- "%b %y"
 n.week.labels.panel <- 2

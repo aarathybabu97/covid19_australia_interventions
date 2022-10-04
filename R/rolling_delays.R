@@ -2,6 +2,10 @@
 
 source("R/functions.R")
 
+get_latest_linelist()
+
+linelist <- readRDS(paste0("outputs/",get_latest_linelist()))
+
 #linelist <- load_linelist()
 linelist_date <- linelist$date_linelist[1]
 
