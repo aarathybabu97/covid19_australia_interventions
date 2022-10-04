@@ -14,16 +14,14 @@ linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 #old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = NULL,
-<<<<<<< HEAD
-                        start_date = as_date("2021-06-01"))
-data[["valid_mat"]][c(443:444),"QLD"] <- FALSE
-=======
                         start_date = as_date("2021-06-01"),
                         immunity_effect_path = "outputs/combined_effect_full.RDS",
                         ascertainment_level = 0.5)
                         
+
+
+data[["valid_mat"]][c(443:444),"QLD"] <- FALSE
  #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
->>>>>>> 799e3b3ef38fe56238f8ff33f6939d8b7d6d7eb2
 # data[["detection_prob_mat"]][919:920,4] <- 0.93
 #reload data here to get the latest vaccine effect, which is typically computed after linelist
 
