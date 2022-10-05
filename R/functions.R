@@ -5421,7 +5421,8 @@ reff_model_data <- function(
   n_weeks_before = NULL,
   start_date = NULL,
   immunity_effect_path = "outputs/vaccination_effect.RDS",
-  ascertainment_level_for_immunity = NULL
+  ascertainment_level_for_immunity = NULL,
+  impute_infection_with_CAR = FALSE
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5501,14 +5502,24 @@ reff_model_data <- function(
   last_detectable_idx <- which(!apply(detectable, 1, any))[1]
   latest_infection_date <- full_dates[ifelse(is.na(last_detectable_idx), length(full_dates), last_detectable_idx)]
   
-  #multiply detection by ascertainment
-  
-  #get latest ascertainment matrix
-  CAR_matrix <- get_CAR_matrix(CAR_time_point = read_csv("outputs/at_least_one_sym_states_central_smoothed.csv"),
-                               date = full_dates, 
-                               state = states)
-  
-  detection_prob_mat <- completion_prob_mat * CAR_matrix
+  if (impute_infection_with_CAR) {
+    #multiply detection by ascertainment
+    
+    #get latest ascertainment matrix
+    CAR_matrix <- get_CAR_matrix(CAR_time_point = read_csv("outputs/at_least_one_sym_states_central_smoothed.csv"),
+                                 date = full_dates, 
+                                 state = states)
+    
+    detection_prob_mat <- completion_prob_mat * CAR_matrix
+  } else {
+    #if not using CAR adjustment, only account for imperfect detection from
+    #reporting delay
+    #make a perfect ascertainment matrix to document this choice
+    CAR_matrix <- completion_prob_mat
+    CAR_matrix[] <- 1
+    detection_prob_mat <- completion_prob_mat
+  }
+
   
   # those infected in the state
   local_cases <- linelist %>%

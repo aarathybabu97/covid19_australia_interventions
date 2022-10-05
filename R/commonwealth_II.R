@@ -231,7 +231,8 @@ saveRDS(linelist,"outputs/commonwealth_ll_imputed_old_method.RDS")
 #linelist <- readRDS("outputs/commonwealth_ll_imputed.RDS")
 
 data <- reff_model_data(linelist_raw = linelist,
-                        notification_delay_cdf = old_delay_cdf)
+                        notification_delay_cdf = old_delay_cdf,
+                        impute_infection_with_CAR = TRUE)
 #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
 saveRDS(data, "outputs/pre_loaded_reff_data_old_imputation.RDS")
 #data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
