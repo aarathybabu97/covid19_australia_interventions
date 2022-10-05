@@ -13264,7 +13264,8 @@ impute_many_onsets <- function(
 # function to get CAR time point estimates, smooth it, and turn into matrix
 get_CAR_matrix <- function(CAR_time_point = read_csv("outputs/at_least_one_sym_states_central_smoothed.csv"),
                            dates = full_dates, 
-                           states = states) {
+                           states = states,
+                           last_perfection_ascertainment_date = as_date("2021-11-01")) {
   
   CAR_time_point <- CAR_time_point %>% 
     select(state,date,fitted_point4) %>% 
@@ -13286,7 +13287,7 @@ get_CAR_matrix <- function(CAR_time_point = read_csv("outputs/at_least_one_sym_s
   #hack in 1s for Delta period
   CAR_smooth <- CAR_smooth %>% 
     mutate(test_prob_given_infection = 
-             case_when(date <= as_date("2021-12-01") ~ 1,
+             case_when(date <= last_perfection_ascertainment_date ~ 1,
                        TRUE ~ test_prob_given_infection))
   
   #hack in constant for the present period
