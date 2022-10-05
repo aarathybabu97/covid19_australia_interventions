@@ -4220,6 +4220,16 @@ surveillance_effect <- function(dates, states, cdf,
     
   }
   
+  #make ascertainment same size
+  if (is.matrix(ascertainment_rate)) {
+    ascertainment_rate <- rbind(ascertainment_rate,
+                                matrix(ascertainment_rate[nrow(ascertainment_rate),], 
+                                       nrow = nrow(date_state_mat) - nrow(ascertainment_rate),
+                                       ncol = ncol(date_state_mat), byrow = TRUE))
+  }
+  
+  
+  
   date_state_mat <- 1 - ((1 - date_state_mat) * ascertainment_rate)
   
   date_state_mat
@@ -5411,7 +5421,7 @@ reff_model_data <- function(
   n_weeks_before = NULL,
   start_date = NULL,
   immunity_effect_path = "outputs/vaccination_effect.RDS",
-  ascertainment_level = NULL
+  ascertainment_level_for_immunity = NULL
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5476,7 +5486,8 @@ reff_model_data <- function(
   n_inducing <- length(inducing_date_nums)
   
   # get detection probabilities for these dates and states
-  detection_prob_mat <- detection_probability_matrix(
+  #renamed this completion prob to differentiate from case ascertainment
+  completion_prob_mat <- detection_probability_matrix(
     latest_date = linelist_date - 1,
     infection_dates = full_dates,
     states = states,
@@ -5484,12 +5495,20 @@ reff_model_data <- function(
   )
   
   # subset to dates with reasonably high detection probabilities in some states
-  detectable <- detection_prob_mat >= detection_cutoff
+  detectable <- completion_prob_mat >= detection_cutoff
   
   # the last date with infection data we include
   last_detectable_idx <- which(!apply(detectable, 1, any))[1]
   latest_infection_date <- full_dates[ifelse(is.na(last_detectable_idx), length(full_dates), last_detectable_idx)]
   
+  #multiply detection by ascertainment
+  
+  #get latest ascertainment matrix
+  CAR_matrix <- get_CAR_matrix(CAR_time_point = read_csv("outputs/at_least_one_sym_states_central_smoothed.csv"),
+                               date = full_dates, 
+                               state = states)
+  
+  detection_prob_mat <- completion_prob_mat * CAR_matrix
   
   # those infected in the state
   local_cases <- linelist %>%
@@ -5603,14 +5622,16 @@ reff_model_data <- function(
   short_dow_effect <- dow_effect[dates_select,]
   
   short_detection_prob_mat <- detection_prob_mat[dates_select,]
+  short_completion_prob_mat <- completion_prob_mat[dates_select,]
+  short_CAR_matrix <- CAR_matrix[dates_select,]
   short_valid_mat <- valid_mat[dates_select,]
   
   #load immunity effect
   vaccine_effect_timeseries <- readRDS(immunity_effect_path)
   
-  if(!is.null(ascertainment_level)) {
+  if(!is.null(ascertainment_level_for_immunity)) {
     vaccine_effect_timeseries <- vaccine_effect_timeseries %>% 
-      filter(ascertainment == ascertainment_level) %>% 
+      filter(ascertainment == ascertainment_level_for_immunity) %>% 
       select(-ascertainment)
   }
   
@@ -5693,51 +5714,6 @@ reff_model_data <- function(
   vaccine_dates <- unique(vaccine_effect_timeseries$date)
   
   
-  #case ascertainment assumptions
-  date_seq_asc <- seq.Date(
-    from = as.Date("2021-12-01"),
-    to = Sys.Date() + weeks(16),
-    by = "1 week"
-  )
-  case_ascertainment_tables <- tibble(date = date_seq_asc)
-  
-  # NSW, VIC, ACT and QLD
-  # Case ascertainment at 75% from 1 December 2021, drop to 33.3% from
-  # 12 December 2021 to 22 January 2022, and return to 75% by 23 January
-  # 2022.
-  
-  # WA, SA, NT, and TAS
-  # Assume constant 75% case ascertainment from 1 December 2021
-  
-  date_state_ascertainment <- expand_grid(date = seq.Date(
-    from = min(case_ascertainment_tables$date),
-    to = max(case_ascertainment_tables$date),
-    by = 1
-  ),
-  state = states) %>% # states = sort(unique(linelist$state)
-    mutate(
-      ascertainment = case_when(
-        state %in% c("NSW", "ACT", "VIC", "QLD") &
-          (date >= "2021-12-01") & (date < "2021-12-12") ~ 0.75,
-        state %in% c("NSW", "ACT", "VIC", "QLD") &
-          (date >= "2021-12-20") & (date < "2022-01-16") ~ 0.33,
-        state %in% c("NSW", "ACT", "VIC", "QLD") &
-          (date >= "2022-01-23") ~ 0.75,
-        state %in% c("WA", "NT", "SA", "TAS") ~ 0.75,
-        TRUE ~ NA_real_
-      )
-    ) %>%
-    arrange(state) %>%
-    mutate(ascertainment = zoo::na.approx(ascertainment))
-  
-  ascertainment_matrix <- date_state_ascertainment %>%
-    pivot_wider(names_from = state, values_from = ascertainment) %>%
-    right_join(y = tibble(date = dates_project)) %>%
-    arrange(date) %>%
-    mutate(across(-date, ~ replace_na(.x, 1))) %>% # 100% FOR PRE DEC 2021
-    dplyr::select(-date) %>%
-    as.matrix
-  
   # return a named, nested list of these objects
   list(
     local = list(
@@ -5752,6 +5728,7 @@ reff_model_data <- function(
       total_hotel_spillovers = n_hotel_spillovers
     ),
     detection_prob_mat = short_detection_prob_mat,
+    completion_prob_mat = short_completion_prob_mat,
     valid_mat = short_valid_mat,
     states = states,
     dates = list(
@@ -5776,7 +5753,7 @@ reff_model_data <- function(
     n_dates_project = n_dates_project,
     n_inducing =  n_inducing,
     vaccine_effect_matrix = vaccine_effect_matrix,
-    ascertainment_matrix = ascertainment_matrix,
+    CAR_mat = short_CAR_matrix,
     dow_effect = short_dow_effect
   )
   
@@ -5871,7 +5848,7 @@ TP_only_calculations <- function(data,
     dates = data$dates$infection_project,
     cdf = gi_cdf,
     states = data$states,
-    ascertainment_rate = data$ascertainment_matrix
+    ascertainment_rate = data$CAR_mat
   )
   
   # ascertainment_rate <- data$ascertainment_matrix
@@ -7076,9 +7053,11 @@ write_local_cases <- function(model_data, dir = "outputs") {
   
   tibble::tibble(
     date_onset = rep(model_data$dates$onset, model_data$n_states),
-    detection_probability = as.vector(model_data$detection_prob_mat),
+    completion_probability = as.vector(model_data$completion_prob_mat),
+    case_ascertainment_probability = as.vector(model_data$CAR_mat),
     state = rep(model_data$states, each = model_data$n_dates),
     count = as.vector(model_data$local$cases_infectious)*as.vector(model_data$dow_effect),
+    infections = round(as.vector(model_data$local$infectiousness)*as.vector(model_data$dow_effect)),
     acquired_in_state = as.vector(model_data$local$cases),
     dow_effect = as.vector(model_data$dow_effect)
   )%>% write.csv(
@@ -13279,4 +13258,60 @@ impute_many_onsets <- function(
   onset_dates <- confirmation_date - sim_delays
   return(onset_dates)
   
+}
+
+
+# function to get CAR time point estimates, smooth it, and turn into matrix
+get_CAR_matrix <- function(CAR_time_point = read_csv("outputs/at_least_one_sym_states_central_smoothed.csv"),
+                           dates = full_dates, 
+                           states = states) {
+  
+  CAR_time_point <- CAR_time_point %>% 
+    select(state,date,fitted_point4) %>% 
+    rename("test_prob_given_symptom" = fitted_point4) %>% 
+    mutate(test_prob_given_infection = test_prob_given_symptom * 0.75 * 0.01) #scale for percentage
+  
+  #make smooth df
+  CAR_smooth <- tibble(date = rep(dates,
+                                  length(states)),
+                       state = rep(states,
+                                   each = length(dates))
+  )
+  
+  CAR_smooth <- left_join(CAR_smooth,CAR_time_point)
+  
+  #maybe no use conditional on symptom column for now
+  CAR_smooth <- CAR_smooth %>% select(-test_prob_given_symptom)
+  
+  #hack in 1s for Delta period
+  CAR_smooth <- CAR_smooth %>% 
+    mutate(test_prob_given_infection = 
+             case_when(date <= as_date("2021-12-01") ~ 1,
+                       TRUE ~ test_prob_given_infection))
+  
+  #hack in constant for the present period
+  CAR_smooth <- CAR_smooth %>% 
+    group_by(state) %>% 
+    mutate(test_prob_given_infection = 
+             case_when(date >= as_date("2022-09-21") ~ replace_na(test_prob_given_infection,
+                                                                  test_prob_given_infection[date == as_date("2022-09-21")]),
+                       TRUE ~ test_prob_given_infection))
+  
+  #smooth
+  CAR_smooth <- CAR_smooth %>% 
+    group_by(state) %>% 
+    mutate(test_prob_given_infection = zoo::na.approx(test_prob_given_infection))
+  
+  
+  # CAR_smooth %>% filter(date > as_date("2021-11-01")) %>% 
+  #   ggplot(aes(x = date,
+  #              y = test_prob_given_infection)) + 
+  #   geom_line() + 
+  #   facet_wrap(~state,scales = "free")
+  
+  #get matrix form
+  CAR_smooth_mat <- CAR_smooth %>% 
+    pivot_wider(values_from = test_prob_given_infection,
+                names_from = state) %>% 
+    select(-date) %>% as.matrix()
 }
