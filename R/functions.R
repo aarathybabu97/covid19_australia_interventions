@@ -5155,7 +5155,28 @@ get_vic_linelist <- function(file) {
   
 }
 
+#function to get summary form of Vic data
+get_vic_summary_count <- function(date = NULL) {
+  #read files
+  vic.files <- list.files("~/not_synced/vic/",pattern = "count", full.names = TRUE)
+  #get dates
+  vic.dates <- vic.files %>%
+    basename() %>%
+    substr(1, 8) %>%
+    as.Date(format = "%Y%m%d")
+  
+  #get latest date if not specified
+  if (is.null(date)) {
+    latest <- which.max(vic.dates)
+    vic.files <- vic.files[latest]
+  } else {
+    vic.files <- vic.files[vic.dates == date]
+  }
 
+  vic_state_count <- read_csv(vic.files) %>% rename("PCR_VIC" = "confirmed",
+                                                    "RAT_VIC" = "probable", 
+                                                    "Date" = "date")
+}
 
 get_sa_linelist <- function(file = "~/not_synced/sa/SA_linelist_25July2021.csv") {
   
@@ -7446,6 +7467,21 @@ write_linelist <- function(linelist = linelist,
     row.names = FALSE
   )
   
+}
+
+#plot linelist by confirmation date for quick check
+plot_linelist_by_confirmation_date <- function(linelist,
+                                               date_cutoff = Sys.Date() - months(1),
+                                               selected_states = states) {
+  
+  linelist %>% filter(date_confirmation >= date_cutoff,
+                      state %in% selected_states) %>% 
+    mutate(cases = 1) %>%
+    group_by(state, date_confirmation,test_type) %>%
+    summarise(cases = sum(cases, na.rm = TRUE)) %>%
+    ungroup() %>% 
+    ggplot(aes(x = date_confirmation, y = cases, fill = test_type)) + 
+    geom_col(position = position_dodge2(width = 1, preserve = "single")) + facet_wrap(~state,scales = "free")
 }
 
 # convert imputed linelist into matrix of new infections by date and state
