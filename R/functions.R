@@ -11313,7 +11313,13 @@ get_quantium_lookups <- function(dir) {
         "%s/dim_sa4.csv",
         dir
       )
+    ),
+  state = read_csv(
+    sprintf(
+      "%s/dim_state.csv",
+      dir
     )
+  )
   )
   
   return(lookups)
