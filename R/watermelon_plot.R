@@ -11,6 +11,7 @@
 
 local_cases <- tibble::tibble(
   date_onset = rep(data$dates$onset, data$n_states),
+  completion_probability = as.vector(data$completion_prob_mat),
   detection_probability = as.vector(data$detection_prob_mat),
   state = rep(data$states, each = data$n_dates),
   count = as.vector(data$local$cases_infectious),
@@ -34,16 +35,16 @@ lc_long <- local_cases %>% na.omit() %>%
 
 prob_line_95 <- lc_long %>%
   filter(type == "count") %>%
-  filter(detection_probability >= 0.95) %>%
+  filter(completion_probability >= 0.95) %>%
   group_by(state) %>%
-  filter(detection_probability == min(detection_probability)) %>%
+  filter(completion_probability == min(completion_probability)) %>%
   select(state,date_onset)
 
 prob_line_90 <- lc_long %>%
   filter(type == "count") %>%
-  filter(detection_probability >= 0.9) %>%
+  filter(completion_probability >= 0.9) %>%
   group_by(state) %>%
-  filter(detection_probability == min(detection_probability)) %>%
+  filter(completion_probability == min(completion_probability)) %>%
   select(state,date_onset)
 
 lc_long <- lc_long %>% 
@@ -53,7 +54,9 @@ lc_long <- lc_long %>%
                           TRUE ~ type)) %>% 
   mutate(count = case_when(type %in% c("count PCR","count RAT","count total") ~ cases,
                            TRUE ~ count)) %>% #remove duplicate proj column
-  filter(!(type == "proj" & test_type %in% c("RAT","Total"))) #all test type are the same
+  group_by(state,date_onset)%>%
+  filter(!duplicated(type))
+  #filter(!(type == "proj" & test_type %in% c("RAT","Total"))) #all test type are the same
 
 lc_long %>%
   ggplot() +
