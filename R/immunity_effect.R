@@ -47,9 +47,9 @@ scenario_to_use <- lookups$scenario$scenario[which.min(parse_number(lookups$scen
 # otherwise may need to check email for appropriate scenario number and assign manually
 scenario_to_use %in% unique(vaccine_raw$scenario)
 #scenario_to_use <- 141
+scenario_to_use
 
-
-scenario_to_use <- lookups$scenario$scenario[1]
+#scenario_to_use <- lookups$scenario$scenario[1]
 
 
 # aggregate to state
@@ -721,17 +721,184 @@ ie_tables_p1 <- tibble(
       .f = get_infection_transmission_effects
     )
   )
-
 gc()
-
 gc()
-
 saveRDS(ie_tables_p1,"outputs/ie_tables_p1.RDS")
-
-rm(ie_tables_p1)
-
+rm(list=ls()) 
 gc()
 gc()
+#.rs.restartR()
+gc()
+#install.packages("readr")
+source("R/functions.R")
+## Vaccination effect ---------
+# Vaccination effect calculations  --------
+
+# find most recent data or specify date, check dir printed is sensible
+get_quantium_data_dates()
+
+dir <- get_quantium_data_dir()
+dir
+# check dir date is sensible and get date of data set
+data_date <- sub(
+  pattern = ".*\\/",
+  replacement = "",
+  x = dir
+) %>%
+  as.Date
+
+data_date
+data_date_save <- format(data_date, "%Y%m%d")
+data_date_save
+
+
+# reaad-in lookups
+# object
+lookups <- get_quantium_lookups(dir = dir)
+
+# read in and label data
+vaccine_raw <- read_quantium_vaccination_data()
+
+# check scenarios and assign appropriate one for use
+# currently only difference is % booster uptake (100, 80, 75)
+# choose 75
+unique(vaccine_raw$scenario)
+
+#scenario_to_use <- lookups$scenario$scenario[grep("Realistic", lookups$scenario$booster_uptake)]
+
+# choosing the lowest fourth dose uptake as realistic : per the emails from Quantium 
+# the lowest 4th dose is the "realistic" scenario but THIS MAY CHANGE IN THE FUTURE
+
+scenario_to_use <- lookups$scenario$scenario[which.min(parse_number(lookups$scenario$fourth_dose_uptake))]
+
+# this may fail if scenario lookup table is not up to date so check this is TRUE or will cause failure later
+# otherwise may need to check email for appropriate scenario number and assign manually
+scenario_to_use %in% unique(vaccine_raw$scenario)
+#scenario_to_use <- 141
+
+scenario_to_use
+# aggregate to state
+vaccine_state <- aggregate_quantium_vaccination_data_to_state(vaccine_raw) %>%
+  filter(scenario == scenario_to_use)
+
+vaccine_state
+
+
+
+state_population <- vaccine_state %>%
+  filter(scenario == max(scenario)) %>%
+  group_by(state) %>%
+  summarise(
+    population = sum(num_people, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+state_population_by_age_band <- vaccine_state %>%
+  filter(scenario == max(scenario)) %>%
+  group_by(age_band, state) %>%
+  summarise(
+    population = sum(num_people, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  group_by(state) %>%
+  mutate(prop_age = population / sum(population))
+
+date_sequence <- seq.Date(
+  from = as.Date("2021-02-22"),
+  to = data_date + weeks(16),
+  by = "1 week"
+)#[63:66]
+
+ve_tables <- readRDS(
+  file = "outputs/ve_tables.RDS"
+)
+
+# blank table of dates, states, variant
+date_state_variant_table <- expand_grid(
+  date = seq.Date(
+    from = min(ve_tables$date),
+    to = max(ve_tables$date),
+    by = 1
+  ),
+  state = unique(ve_tables$vaccine_transmission_effects[[1]]$state),
+  variant = unique(ve_tables$vaccine_transmission_effects[[1]]$variant)
+)
+
+vaccination_effect_timeseries <- read_csv(
+  file = "outputs/vaccination_effect.csv"
+)
+
+dpi <- 150
+font_size <- 12
+
+
+ve_ticks_labels <- split_ticks_and_labels(
+  data = vaccination_effect_timeseries,
+  tick_freq = "1 month",
+  label_freq = "2 months",
+  label_format = "%b %y"
+)
+
+
+get_local_cases_input()
+
+local_cases <- readr::read_csv(paste0("outputs/",get_local_cases_input())) %>%
+  select(
+    date = date_onset,
+    state,
+    cases = count
+  ) %>%
+  filter(date <= data_date)
+
+# hack in time varying ascertainment
+
+#case ascertainment assumptions
+date_seq_asc <- seq.Date(
+  from = as.Date("2021-12-01"),
+  to = Sys.Date() + weeks(16),
+  by = "1 week"
+)
+case_ascertainment_tables <- tibble(date = date_seq_asc)
+
+# NSW, VIC, ACT and QLD
+# Case ascertainment at 75% from 1 December 2021, drop to 33.3% from
+# 12 December 2021 to 22 January 2022, and return to 75% by 23 January
+# 2022.
+
+# WA, SA, NT, and TAS
+# Assume constant 75% case ascertainment from 1 December 2021
+
+date_state_ascertainment <- expand_grid(date = seq.Date(
+  from = min(case_ascertainment_tables$date),
+  to = max(case_ascertainment_tables$date),
+  by = 1
+),
+state = states) %>% # states = sort(unique(linelist$state)
+  mutate(
+    ascertainment = case_when(
+      state %in% c("NSW", "ACT", "VIC", "QLD") &
+        (date >= "2021-12-01") & (date < "2021-12-12") ~ 0.75,
+      state %in% c("NSW", "ACT", "VIC", "QLD") &
+        (date >= "2021-12-20") & (date < "2022-01-16") ~ 0.33,
+      state %in% c("NSW", "ACT", "VIC", "QLD") &
+        (date >= "2022-01-23") ~ 0.75,
+      state %in% c("WA", "NT", "SA", "TAS") ~ 0.75,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  arrange(state) %>%
+  mutate(ascertainment = zoo::na.approx(ascertainment))
+
+
+omicron_infections <- get_infections(
+  local_cases = local_cases,
+  constant_ascertainment = TRUE, ascertainment_rate = c(0.5,0.75),
+  time_varying_ascertainment = date_state_ascertainment,
+  state_population
+)
+
+gc()
+
 
 ie_tables_p2 <- tibble(
   date = seq.Date(
@@ -783,9 +950,12 @@ ie_tables_p2 <- tibble(
 gc()
 
 saveRDS(ie_tables_p2,"outputs/ie_tables_p2.RDS")
+
+readRDS("outputs/ie_tables_p2.RDS")->ie_tables_p2
 gc()
 readRDS("outputs/ie_tables_p1.RDS")->ie_tables_p1
 gc()
+
 
 bind_rows(ie_tables_p1,ie_tables_p2)->ie_tables
 
@@ -1302,8 +1472,9 @@ ggsave(
   bg = "white"
 )
 
-
+read_csv("outputs/vaccination_effect_hosp_20220926.csv")->vaccination_effect_timeseries_hosp
 combined_effect_timeseries_hosp %>%
+  
   ggplot() +
   geom_line(aes(x = date, y = m_hosp, linetype = variant,size=variant, alpha = factor(ascertainment)),
             color = "#0072B2")  +
@@ -1347,7 +1518,7 @@ ggsave(
     data_date_save
   ),
   dpi = dpi,
-  width = 1210 / dpi,
+  width = 1250 / dpi,
   height = 1250 / dpi,
   scale = 1.2,
   bg = "white"
@@ -1620,3 +1791,4 @@ write_csv(
 #       vaccine_scenarios = vaccine_state
 #     )
 #   )
+
