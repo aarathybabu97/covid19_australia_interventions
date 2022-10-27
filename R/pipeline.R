@@ -53,10 +53,6 @@ source("R/macrodistancing_change.R")
 #  produces notification date by state plots for the most recent 28 days
 # optionally, produce NINDSS only watermelon plot
 
-# 3. Run surveillance effect models and output figures (surveillance_effect.png
-# and notification_delays.png) and model objects (delay_from_onset_cdfs.RDS)
-# [~60s]
-
 #overall linelist read line
 linelist <- load_linelist(use_vic = FALSE) #skip Vic since using summary data
 
@@ -83,20 +79,15 @@ saveRDS(
   )
 )
 
-
-source("R/rolling_delays.R")
-#  -- figs to Mediaflux / to Freya
-
 # 4. TTIQ and Isolation effect
 #source("R/isolation_effect.R")
 # -- figs and ttiq_effect.csv to Mediaflux / to Freya
 
 
 # # 5. summary data approach
-# load in commonwealth summary data and process it in reff model format
-# this is a not-so-temporary data stream
-# expect to change data stream again when select interview data becomes available
-source("R/commonwealth_ll.R")
+# Uses nindss + commonwealth act + state summary of vic, nsw,qld,tasmania
+
+source("R/nndss_state_summary.R")
 
 
 # Archived older pipeline
@@ -119,7 +110,9 @@ source("R/commonwealth_ll.R")
 
 
 # 2. Vaccination effect - Quantium update usually CoB Tuesday
-# [~ 45 min]
+# [~ 45 min] Takes much longer now ever since a big quantium update. 
+# ie_tables are now split into two parts. Each take around ~2hours to run. 
+#  delete the saved ie_tables_p1,p2 & ve_tables before running reff incase it overwhelms storage.
 source("R/immunity_effect.R")
 # -- Figs into Mediaflux / to Freya
 # -- all dated csv and rds outputs to Mediaflux
@@ -138,4 +131,11 @@ source("R/R_effective.R")
 ## - figures, samples as above, plus wt, alpha and delta, and other variants, and
 # outputs/output_dates.csv to Mediaflux/Freya
 
+# 3. Run surveillance effect models and output figures (surveillance_effect.png
+# and notification_delays.png) and model objects (delay_from_onset_cdfs.RDS)
+# [~60s]
+
+
+source("R/rolling_delays.R")
+#  -- figs to Mediaflux / to Freya
 # hooray - you're done!
