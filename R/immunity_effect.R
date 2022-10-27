@@ -453,6 +453,12 @@ write_csv(
   )
 )
 
+write_csv(
+  vaccination_effect_timeseries_hosp,
+  file =
+    "outputs/vaccination_effect_hosp.csv"
+)
+
 vaccination_effect_timeseries_hosp %>%
   filter(variant != "Delta") %>%
   mutate(
@@ -1046,6 +1052,10 @@ write_csv(
     data_date_save
   )
 )
+write_csv(
+  combined_effect_timeseries_hosp,
+    "outputs/combined_effect_hospitalisation.csv"
+)
 
 write_csv(
   combined_effect_timeseries_full,
@@ -1472,7 +1482,7 @@ ggsave(
   bg = "white"
 )
 
-read_csv("outputs/vaccination_effect_hosp_20220926.csv")->vaccination_effect_timeseries_hosp
+read_csv("outputs/vaccination_effect_hosp.csv")->vaccination_effect_timeseries_hosp
 combined_effect_timeseries_hosp %>%
   
   ggplot() +
