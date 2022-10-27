@@ -1,5 +1,7 @@
-#source("R/functions.R")
-
+#
+# install.packages(c("readr"))
+# install.packages("rvest")
+source("R/functions.R")
 # #load fitted model for existing linelist
 # fitted_model <- readRDS("outputs/fitted_reff_model.RDS")
 # 
@@ -49,13 +51,14 @@ scrape <- function(states = NULL) {
   covidlive_ll
 } 
 
-scraped <- scrape()
+scraped <- scrape(states = "tas")
 
+scraped$test_type <- "Total"
 
+scraped_tas_before <- scraped%>%
+  filter(date_confirmation<"2022-09-01")
 
-
-
-
+saveRDS(scraped_tas_before, "~/not_synced/tas/scraped_tas_before.RDS")
 
 # #add column for onset
 # scraped$date_onset <- NA
@@ -282,3 +285,5 @@ scraped <- scrape()
 #         panel.spacing = unit(1.2, "lines"))
 # 
 # ggsave("outputs/figures/onset_comparison_covid_live.png", bg = 'white',height = 7, width = 12)
+
+
