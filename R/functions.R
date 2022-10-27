@@ -5172,11 +5172,12 @@ get_vic_summary_count <- function(date = NULL) {
   } else {
     vic.files <- vic.files[vic.dates == date]
   }
-
+  
   vic_state_count <- read_csv(vic.files) %>% rename("PCR_VIC" = "confirmed",
                                                     "RAT_VIC" = "probable", 
                                                     "Date" = "date")
 }
+
 
 get_sa_linelist <- function(file = "~/not_synced/sa/SA_linelist_25July2021.csv") {
   
@@ -7109,6 +7110,35 @@ get_local_cases_input <-  function() {
   local_cases_dates<- parsedate::parse_date((f))%>%as.Date
   latest_local_cases_input<- f[which.max(local_cases_dates)]
   return(latest_local_cases_input)
+}
+
+# Get latest tasmania data name
+
+get_latest_tasmania_data<-  function() {
+  file <-  list.files(pattern="* Commonwealth Weekly Report Tasmania.csv", path="~/not_synced/tas/",   
+                      full.names = FALSE
+  ) 
+  all_data_dates<- parsedate::parse_date((file))%>%as.Date
+  latest_data<- file[which.max(all_data_dates)]
+  return(latest_data)
+}
+
+# Read latest tasmania data 
+
+read_latest_tasmania_data <- function() {
+  
+    readr::read_csv(paste0("~/not_synced/tas/", get_latest_tasmania_data())) %>%
+    select(
+      date_confirmation = "current_as_at" ,
+      Total = "total_cases_24hrs" ,
+      RAT = "rat_cases_24hrs" ,
+      PCR = "pcr_cases_24hrs"
+    ) %>%
+    pivot_longer(PCR:Total, names_to = "test_type", values_to = "daily_notification") %>%
+    filter(test_type != "Total") %>%
+    mutate(state = "TAS") %>%
+    mutate(date_confirmation = as.Date(date_confirmation, format = "%d/%m/%Y"))
+  
 }
 
 
@@ -9217,6 +9247,7 @@ predict_mobility_trend <- function(
       holiday = factor(holiday),
       date_num = as.numeric(date - min_date),
       dow = lubridate::wday(date, label = TRUE),
+      #doy = lubridate::yday(date),
       dow = as.character(dow)
     ) %>%
     filter(!is.na(trend))
@@ -9238,7 +9269,7 @@ predict_mobility_trend <- function(
              
              # constant effect for school holidays
              is_a_school_holiday +
-             
+            # s(doy, bs = "cc")+
              # day of the week effect
              dow,
            
@@ -9279,6 +9310,7 @@ predict_mobility_trend <- function(
       intervention_steps,
       by = c("state", "date")
     ) %>%
+    #mutate(doy = lubridate::yday(date))%>%
     mutate(
       holiday = replace_na(holiday, "none"),
       is_a_holiday = holiday != "none",
@@ -11283,7 +11315,17 @@ get_quantium_lookups <- function(dir) {
         name = col_character(),
         short_name = col_character()
       )
-    ),
+    )%>%
+      mutate(short_name = case_when(
+        name == "Moderna bivalent" ~ "PF",
+        name == "Other" ~ "PF",
+        TRUE~ as.character(short_name)
+      ))%>%
+      mutate(name = case_when(
+        name == "Moderna bivalent" ~ "Pfizer",
+        name == "Other" ~ "Pfizer",
+        TRUE~ as.character(name)
+      )),
     date = read_csv(
       sprintf(
         "%s/dim_time.csv",
@@ -11314,12 +11356,10 @@ get_quantium_lookups <- function(dir) {
         dir
       )
     ),
-  state = read_csv(
-    sprintf(
+    state=read_csv(sprintf(
       "%s/dim_state.csv",
       dir
-    )
-  )
+    ))
   )
   
   return(lookups)
@@ -11488,6 +11528,7 @@ read_quantium_vaccination_data <- function(
 aggregate_quantium_vaccination_data_to_state <- function(data){
   
   data %>%
+    left_join(lookups$state,by="state")%>%
     left_join(
       state_short_long_table,
       by = c("STE_NAME16" = "state_long")
