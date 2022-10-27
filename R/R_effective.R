@@ -3,12 +3,13 @@
 
 source("R/lib.R")
 
-set.seed(2020-04-29)
+set.seed(2020-04-29) 
 source("R/functions.R")
 
 # sync up the case data
 sync_nndss()
 
+source("R/pcr_only_linelist.R")
 # prepare data for Reff modelling
 linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 
@@ -22,11 +23,11 @@ data <- reff_model_data(linelist_raw = linelist,
 
 #remove the last two days of data in Qld due to delayed upload
 #MAKE SURE TO RUN THIS LINE ONLY ONCE as it will keep on removing last two TRUEs
-data[["valid_mat"]][tail(which(data[["valid_mat"]][,"QLD"]),2),"QLD"] <- FALSE
+#data[["valid_mat"]][tail(which(data[["valid_mat"]][,"QLD"]),2),"QLD"] <- FALSE
 
-
-# data[["valid_mat"]][c(479:480),"QLD"] <- FALSE
-# data[["valid_mat"]][c(479),"VIC"] <- FALSE
+View(data[["valid_mat"]])
+data[["valid_mat"]][c(501),"VIC"] <- FALSE
+ data[["valid_mat"]][c(502),c("NSW","QLD")] <- FALSE
  #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
 # data[["detection_prob_mat"]][919:920,4] <- 0.93
 #reload data here to get the latest vaccine effect, which is typically computed after linelist
@@ -121,6 +122,8 @@ system.time(
 # save the fitted model object
 saveRDS(refitted_model, "outputs/fitted_reff_only_model.RDS")
 # saveRDS(refitted_model, "outputs/fitted_full_reff_model.RDS")
+
+#refitted_model <- readRDS("outputs/fitted_reff_only_model.RDS")
 
 
 # # visual checks of model fit
