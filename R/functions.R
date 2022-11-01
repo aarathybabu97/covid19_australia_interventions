@@ -9217,6 +9217,7 @@ predict_mobility_trend <- function(
       holiday = factor(holiday),
       date_num = as.numeric(date - min_date),
       dow = lubridate::wday(date, label = TRUE),
+      doy = lubridate::yday(date),
       dow = as.character(dow)
     ) %>%
     filter(!is.na(trend))
@@ -9240,7 +9241,9 @@ predict_mobility_trend <- function(
              is_a_school_holiday +
              
              # day of the week effect
-             dow,
+             dow, #+
+             #Day of year effect
+             #s(doy, bs = "cc",k=50),
            
            select = TRUE,
            gamma = 2,
@@ -9280,6 +9283,7 @@ predict_mobility_trend <- function(
       by = c("state", "date")
     ) %>%
     mutate(
+      #doy = lubridate::yday(date),
       holiday = replace_na(holiday, "none"),
       is_a_holiday = holiday != "none",
       # remove any named holidays not in the training data
@@ -11478,7 +11482,15 @@ read_quantium_vaccination_data <- function(
     left_join(
       lookups$sa4,
       by = "sa4_code16"
-    )
+    ) %>%
+    #join the new state col
+    left_join(
+      lookups$state,
+      by = "state"
+    ) %>% 
+    select(
+      -state
+    ) 
   
   return(vaccine_data)
   
