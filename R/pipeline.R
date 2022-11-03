@@ -96,7 +96,7 @@ source("R/rolling_delays.R")
 # load in commonwealth summary data and process it in reff model format
 # this is a not-so-temporary data stream
 # expect to change data stream again when select interview data becomes available
-source("R/commonwealth_ll.R")
+source("R/assemble_notification_data.R")
 
 
 # Archived older pipeline

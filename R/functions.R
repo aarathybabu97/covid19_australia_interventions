@@ -4366,9 +4366,7 @@ lengthen <- function(matrix, dates, region_name, value_name) {
 postcode_to_state <- function(postcode) {
   
   state <- case_when(
-    #grepl("^26", postcode) ~ "ACT",
-    # For ACT postcodes see https://en.wikipedia.org/wiki/Postcodes_in_Australia
-    is_act_postcode(postcode) ~ "ACT",
+    postcode %in% c("8888","9999") ~ NA_character_,
     grepl("^2", postcode) ~ "NSW",
     grepl("^3", postcode) ~ "VIC",
     grepl("^4", postcode) ~ "QLD",
@@ -4379,10 +4377,13 @@ postcode_to_state <- function(postcode) {
     # QLD seems to be recording some locations as 93xx (QLD po-box or LVR?) 9399
     # is in NIR list as QLD, but 9301 is not)
     grepl("^93", postcode) ~ "QLD",
-    TRUE ~ "NA"
+    #grepl("^26", postcode) ~ "ACT",
+    # For ACT postcodes see https://en.wikipedia.org/wiki/Postcodes_in_Australia
+    is_act_postcode(postcode) ~ "ACT",
+    TRUE ~ NA_character_
   )
   
-  state[state == "NA"] <- NA
+  # state[state == "NA"] <- NA
   state
   
 }
@@ -4466,7 +4467,8 @@ get_nndss_linelist <- function(
     missing_location_assumption = "local",
     #missing_location_assumption = "missing",
     location_conflict_assumption = "local",
-    preprocessed = NULL
+    preprocessed = NULL,
+    fast = TRUE
 ) {
   
   if (is.null(preprocessed)) {
@@ -4497,6 +4499,7 @@ get_nndss_linelist <- function(
     dat <- preprocessed$dat
   }
   
+if (fast == FALSE) {
   # record state of acquisition, and residence
   dat <- dat %>%
     # fill in missing places of acquisition with correct code
@@ -4524,6 +4527,33 @@ get_nndss_linelist <- function(
         TRUE ~ FALSE
       )
     )
+} else {
+  # record state of acquisition, and residence
+  dat <- dat %>%
+    # fill in missing places of acquisition with correct code
+    mutate(
+      PLACE_OF_ACQUISITION = ifelse(
+        is.na(PLACE_OF_ACQUISITION),
+        "00038888",
+        PLACE_OF_ACQUISITION)
+    ) %>%
+    mutate(
+      postcode_of_acquisition = substr(PLACE_OF_ACQUISITION, 5, 8),
+      postcode_of_residence = replace_na(POSTCODE, "8888"),
+      state_of_residence = postcode_to_state(postcode_of_residence)
+    ) %>%
+    mutate(
+      state_of_acquisition = postcode_to_state(postcode_of_acquisition),
+      .after = postcode_of_residence
+    ) %>% 
+    mutate(
+      interstate_import_cvsi = case_when(
+        CV_SOURCE_INFECTION == 4 ~ TRUE,
+        CV_SOURCE_INFECTION == 7 ~ TRUE,
+        TRUE ~ FALSE
+      )
+    )
+}
   
   
   # Generate linelist data
@@ -4538,7 +4568,7 @@ get_nndss_linelist <- function(
   
   
   #process test_type if applicable
-  if (preprocessed$data$date_time >= as_date("2022-06-01")) { #picked a tentative threshold
+  if (preprocessed$data$date_time >= as_date("2022-01-06")) { #picked a tentative threshold
     linelist <- linelist %>% 
       mutate(test_type = case_when(CONFIRMATION_STATUS == "PROBABLE" 
                                    ~ "RAT",
@@ -5173,10 +5203,229 @@ get_vic_summary_count <- function(date = NULL) {
     vic.files <- vic.files[vic.dates == date]
   }
 
-  vic_state_count <- read_csv(vic.files) %>% rename("PCR_VIC" = "confirmed",
-                                                    "RAT_VIC" = "probable", 
-                                                    "Date" = "date")
+  vic_state_count <- read_csv(vic.files) %>% 
+    rename("PCR" = "confirmed",
+           "RAT" = "probable", 
+           "date" = "date") %>% 
+    pivot_longer(cols =  c(PCR,RAT),
+                 names_to = "test_type", 
+                 values_to = "cases") %>% 
+    mutate(state = "VIC",
+           cases = replace_na(cases,0)) %>% 
+    filter(date >= as_date("2022-01-06"))
 }
+
+
+#function to read in and stich together tas summary data
+get_tas_summary_data <- function(covidlive_period = NULL) {
+  
+  if (is.null(covidlive_period)) {
+      covidlive_period <- "https://covidlive.com.au/report/daily-cases/tas" %>%
+        read_html() %>%
+        html_nodes(
+          "table"
+        ) %>%
+        .[[2]] %>%
+        html_table(
+          fill = TRUE
+        ) %>%
+        mutate(
+          date = as.Date(DATE, format = "%d %B %y"),
+          cases = as.numeric(gsub(",","",NEW)),
+          cases = ifelse(is.na(cases),0,cases),
+          cases = ifelse(cases < 0,0,cases)
+        ) %>%
+        arrange(
+          date
+        )  %>%
+        select(
+          date,
+          cases
+        ) %>% 
+        filter(date<as_date("2022-09-01"),
+               date>=as_date("2022-01-06")) %>% 
+        mutate(test_type = NA)
+  }
+  
+  #get old format data
+  old_format_data <- read_csv("~/not_synced/tas/Data request cases Tas 1 Sept to 11 Oct 2022.csv") %>%
+    mutate(Date = as.Date(Date, format = "%d-%b")) %>%
+    rename(date = Date,
+           PCR = "Cases from PCR",
+           RAT = "Cases from RAT") %>%
+    pivot_longer(cols = c("RAT","PCR"), names_to = "test_type", values_to = "cases") %>%
+    select(date,cases,test_type)
+  
+  new_format_files <-  list.files(pattern="* Commonwealth Weekly Report Tasmania.csv", path="~/not_synced/tas/",   
+                      full.names = TRUE
+  ) 
+  
+  #read in new format files
+  new_format_data <- lapply(new_format_files,load_tas_count_data_new_format) 
+  new_format_data <- do.call(rbind,new_format_data)
+  
+  do.call(rbind,list(covidlive_period,old_format_data,new_format_data)) %>% 
+    arrange(desc(date)) %>% 
+    mutate(state = "TAS")
+}
+
+load_tas_count_data_new_format <- function(file) {
+  readr::read_csv(file) %>%
+    select(
+      date = "current_as_at" ,
+      RAT = "rat_cases_24hrs" ,
+      PCR = "pcr_cases_24hrs"
+    ) %>%
+    pivot_longer(cols = c("RAT","PCR"), names_to = "test_type", values_to = "cases") %>%
+    mutate(date = as.Date(date, format = "%d/%m/%Y"))
+}
+
+
+
+get_qld_summary_data <- function(file = NULL,
+                                 legacy = TRUE) {
+  
+  if (is.null(file)) {
+    file <- list.files("~/not_synced/qld/",
+                       pattern = "UniMelbData *",
+                       full.names = TRUE)
+    
+    all_data_dates<- parsedate::parse_date((file))%>%as.Date
+    file<- file[which.max(all_data_dates)]
+  }
+  
+  if (legacy) {
+    
+    file %>% read_xlsx(sheet = 2) %>% 
+      mutate(date = as.Date(DateOfTestResult, format =  "%d/%m/%Y")) %>% 
+      group_by(date) %>%
+      mutate(cases = sum(N)) %>%
+      filter(date >= "2022-01-06") %>%
+      select(date, cases) %>% 
+      distinct(date, .keep_all = TRUE) %>%
+      ungroup() %>%
+      mutate(state = "QLD", test_type = "RAT") -> qld_legacy_rat
+    
+    file %>% read_xlsx(sheet = 3) %>% 
+      mutate(date = as.Date(CollectionDate, format =  "%d/%m/%Y")) %>% 
+      group_by(date) %>%
+      mutate(cases = sum(N)) %>%
+      filter(date >= "2022-01-06") %>%
+      select(date, cases) %>% 
+      distinct(date, .keep_all = TRUE) %>%
+      ungroup() %>%
+      mutate(state = "QLD", test_type = "PCR") -> qld_legacy_pcr
+    
+    bind_rows(qld_legacy_rat,qld_legacy_pcr)
+    
+  } else {
+    file %>% read_xlsx(sheet = 4) %>% 
+      mutate(date = as.Date(CollectionDate, format =  "%d/%m/%Y"),
+             test_type = case_when(
+               Lab_source  == "1_PCR" ~ "PCR",
+               Lab_source %in% c("2_Authorised RAT",
+                                 "4_Unverified RAT") ~ "RAT",
+               TRUE ~ "PCR" 
+               #this is in principle incorrect, but without the resolution of test
+               #source information these cases would likely have been classified
+               #as PCR in other jurisdictions, so for consistency sake we classify
+               #them as PCR too
+             )) %>% 
+      group_by(date,test_type) %>%
+      mutate(cases = sum(N)) %>%
+      filter(date >= "2022-01-06") %>%
+      select(date, cases, test_type) %>% 
+      distinct(date, .keep_all = TRUE) %>%
+      ungroup() %>%
+      mutate(state = "QLD") 
+  }
+  
+
+}
+
+#get act summary data for the pre-nindss spike period
+get_act_summary_data <- function(){
+  
+  
+  filepath <- "~/not_synced/PCR and RAT Breakdown (24 hour totals).xlsx"
+  
+  
+  linelist_commonwealth <- read_xlsx(
+    filepath,
+    skip = 3,
+    sheet = 2,
+    col_types = c("skip", "date", rep("numeric", 27))
+  ) %>%
+    select(-starts_with("Total"))
+  
+  states <- names(read_xlsx(filepath,
+                            range = "B3:AC3",sheet = 2))
+  
+  states <- states[-grep("...",states,fixed = TRUE)]
+  
+  states <- rep(states,each = 2)
+  
+  #get test type designation
+  colnames(linelist_commonwealth) <- word(colnames(linelist_commonwealth),1,1, sep = fixed("..."))
+  
+  
+  colnames(linelist_commonwealth)[2:19] <- paste(colnames(linelist_commonwealth)[2:19],states,sep = "_")
+  
+  #check colnames
+  colnames(linelist_commonwealth)
+  
+  #remove "total" row
+  linelist_commonwealth <- linelist_commonwealth %>%
+    filter(!is.na(Date))%>%
+    mutate_if(is.numeric,abs)
+  
+  linelist_commonwealth <- linelist_commonwealth %>%
+    select(-ends_with("Australia")) %>% 
+    pivot_longer(-Date,
+                 names_to = "state",
+                 values_to = "daily_notification") %>% 
+    mutate(
+      date_confirmation = as_date(Date)
+    ) %>%
+    arrange(
+      date_confirmation
+    )  %>%
+    select(
+      date_confirmation,
+      daily_notification,
+      state
+    ) %>% 
+    mutate("test_type" = word(state,1,1, sep = fixed("_")),
+           "state" = word(state,2,2, sep = fixed("_"))) 
+  
+  linelist_commonwealth %>% 
+    filter(state == "ACT",
+           date_confirmation >= "2022-01-06",
+           date_confirmation <= as.Date("2022-03-28")) %>% 
+    rename(date = date_confirmation,
+           cases = daily_notification)
+
+}
+
+
+
+get_summary_data <- function(states = c("VIC","TAS","QLD")) {
+  summary <- tibble(date = NULL,
+                    test_type = NULL,cases = NULL,state = NULL)
+  if ("VIC" %in% states) {
+    summary <-bind_rows(summary,get_vic_summary_count()) 
+  }
+  
+  if ("TAS" %in% states) {
+    summary <-bind_rows(summary,get_tas_summary_data())
+  }
+  
+  if ("QLD" %in% states) {
+    summary <-bind_rows(summary,get_qld_summary_data())
+  }
+  summary
+}
+
 
 get_sa_linelist <- function(file = "~/not_synced/sa/SA_linelist_25July2021.csv") {
   
@@ -5443,13 +5692,20 @@ reff_model_data <- function(
   start_date = NULL,
   immunity_effect_path = "outputs/vaccination_effect.RDS",
   ascertainment_level_for_immunity = NULL,
-  impute_infection_with_CAR = FALSE
+  impute_infection_with_CAR = FALSE,
+  PCR_only_states = c("NSW","VIC")
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
   
   # load modelled google mobility data 
   mobility_data <- readRDS("outputs/google_change_trends.RDS")
+  
+  #back out RAT data for states to run PCR only
+  if (!is.null(PCR_only_states)) {
+    linelist_raw <- linelist_raw %>% 
+      filter(!(state %in% PCR_only_states & test_type == "RAT"))
+  }
   
   # compute delays from symptom onset to detection for each state over time if null
   if (is.null(notification_delay_cdf)) {
@@ -7081,7 +7337,7 @@ write_reff_key_dates <- function(model_data, dir = "outputs/") {
 }
 
 # save local case data, dates, and detection probabilities for Robs
-write_local_cases <- function(model_data, dir = "outputs") {
+write_local_cases <- function(model_data, dir = "outputs", suffix = NULL) {
   
   tibble::tibble(
     date_onset = rep(model_data$dates$onset, model_data$n_states),
@@ -7093,7 +7349,7 @@ write_local_cases <- function(model_data, dir = "outputs") {
     acquired_in_state = as.vector(model_data$local$cases),
     dow_effect = as.vector(model_data$dow_effect)
   )%>% write.csv(
-    file.path(dir,paste0("local_cases_input_", format(model_data$dates$linelist, "%Y-%m-%d"), ".csv")),
+    file.path(dir,paste0("local_cases_input_", suffix, format(model_data$dates$linelist, "%Y-%m-%d"), ".csv")),
     row.names = FALSE
   )
   
@@ -7218,15 +7474,17 @@ notification_delay_group <- function(date_confirmation, state) {
     date_confirmation < as.Date("2020-06-14") ~ 1,
     date_confirmation < as.Date("2020-08-01") ~ 2,
     date_confirmation < as.Date("2020-08-21") ~ 3,
-    TRUE ~ 4,
+    date_confirmation < as.Date("2021-12-01") ~ 4,
+    TRUE ~ 5
   )
   
   group <- case_when(
     stage == 1 ~ "all states (start-Jun13)",
     stage == 2 & state == "VIC" ~ "VIC 1 (Jun14-Jul31)",
     stage == 3 & state == "VIC" ~ "VIC 2 (Aug1-Aug20)",
-    stage == 4 & state == "VIC" ~ "VIC 3 (Aug21-now)",
-    TRUE ~ "other states Jun14-now"
+    stage == 4 & state == "VIC" ~ "VIC 3 (Aug21-Omicron)",
+    stage == 4 & state != "VIC" ~ "other states Jun14-Omicron",
+    TRUE ~ "Omicron"
   )
   
   group
@@ -7468,6 +7726,75 @@ write_linelist <- function(linelist = linelist,
   )
   
 }
+
+
+#replace linelist date and state components with summary data
+replace_linelist_bits_with_summary <- function(linelist = linelist,
+                                   summary_data = summary_data,
+                                   states_select = c("VIC","QLD"),
+                                   start = as_date("2022-01-06"),
+                                   end = NULL) {
+  
+  #filter summary data by state selected and dates
+  summary_data <- summary_data %>% 
+    filter(state %in% states_select)
+  
+  if (!is.null(start)) {
+    summary_data <- summary_data %>% 
+      filter(date >= start)
+  }
+  
+  if (!is.null(end)) {
+    summary_data <- summary_data %>% 
+      filter(date <= end)
+  }
+  
+  #turn to linelist format
+  summary_to_linelist <- summary_data %>% 
+    uncount(weights = cases)
+  
+  #add column for onset and import stat
+  summary_to_linelist$date_onset <- NA
+  summary_to_linelist$import_status <- "local"
+  
+  summary_to_linelist <- summary_to_linelist %>% 
+    rename(date_confirmation = date)
+  
+  #filter out linelist bits of the selected states and dates
+  if (!is.null(start) & is.null(end)) {
+    linelist <- linelist %>% 
+      filter(!(date_confirmation >= start & state %in% states_select))
+  }
+  
+  if (!is.null(end) & is.null(start)) {
+    linelist <- linelist %>% 
+      filter(!(date_confirmation <= end & state %in% states_select))
+  }
+  
+  if (!is.null(end) & !is.null(start)) {
+    linelist <- linelist %>% 
+      filter(!(date_confirmation <= end & date_confirmation >= start & state %in% states_select))
+  }
+  
+  #join the two together
+  linelist <- linelist %>%
+    bind_rows(summary_to_linelist)
+  
+  
+  #populate missing columns from summary data
+  linelist$interstate_import[is.na(linelist$interstate_import)] <- FALSE
+  
+  linelist$date_linelist[is.na(linelist$date_linelist)] <- linelist$date_linelist[1]
+  
+  #sanity check for onset dates
+  linelist$date_onset <- as_date(ifelse(linelist$date_onset < "2020-01-01",
+                                        NA,
+                                        linelist$date_onset))
+  
+  linelist
+}
+
+
 
 #plot linelist by confirmation date for quick check
 plot_linelist_by_confirmation_date <- function(linelist,
@@ -8924,7 +9251,7 @@ estimate_delays <- function(
     
     nationwide <- date_state %>%
       # arbitrarily pick one set of dates
-      filter(state == "ACT") %>%
+      filter(state == "NSW") %>%
       select(-state) %>%
       group_by(date) %>%
       mutate(
