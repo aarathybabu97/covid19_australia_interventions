@@ -11613,8 +11613,7 @@ get_quantium_lookups <- function(dir) {
         vaccine = col_double(),
         name = col_character(),
         short_name = col_character()
-      )
-    ),
+      )),
     date = read_csv(
       sprintf(
         "%s/dim_time.csv",
@@ -11955,7 +11954,10 @@ get_vaccine_cohorts_at_date <- function(vaccine_scenarios, target_date) {
         product == "Moderna" ~ "Pf",
         product == "Booster" ~ "mRNA",
         product == "Pfizer (5-11)" ~ "Pf",
-        product == "Novavax" ~ "Pf"
+        product == "Novavax" ~ "Pf",
+        product == "Moderna (6m-4)" ~ "Pf",
+        product == "Moderna bivalent" ~ "Pf",
+        product == "Other" ~ "Pf"
       ),
       # dose = case_when(
       #   dose == "dose_3" ~ "booster",
