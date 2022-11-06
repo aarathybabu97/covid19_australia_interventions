@@ -4467,8 +4467,7 @@ get_nndss_linelist <- function(
     missing_location_assumption = "local",
     #missing_location_assumption = "missing",
     location_conflict_assumption = "local",
-    preprocessed = NULL,
-    fast = TRUE
+    preprocessed = NULL
 ) {
   
   if (is.null(preprocessed)) {
@@ -4499,35 +4498,6 @@ get_nndss_linelist <- function(
     dat <- preprocessed$dat
   }
   
-if (fast == FALSE) {
-  # record state of acquisition, and residence
-  dat <- dat %>%
-    # fill in missing places of acquisition with correct code
-    mutate(
-      PLACE_OF_ACQUISITION = ifelse(
-        is.na(PLACE_OF_ACQUISITION),
-        "00038888",
-        PLACE_OF_ACQUISITION)
-    ) %>%
-    mutate(
-      postcode_of_acquisition = substr(PLACE_OF_ACQUISITION, 5, 8),
-      postcode_of_residence = replace_na(POSTCODE, "8888"),
-      state_of_residence = postcode_to_state(postcode_of_residence)
-    ) %>%
-    rowwise %>%
-    mutate(
-      state_of_acquisition = postcode_to_state(postcode_of_acquisition),
-      .after = postcode_of_residence
-    ) %>% 
-    ungroup %>%
-    mutate(
-      interstate_import_cvsi = case_when(
-        CV_SOURCE_INFECTION == 4 ~ TRUE,
-        CV_SOURCE_INFECTION == 7 ~ TRUE,
-        TRUE ~ FALSE
-      )
-    )
-} else {
   # record state of acquisition, and residence
   dat <- dat %>%
     # fill in missing places of acquisition with correct code
@@ -4553,7 +4523,7 @@ if (fast == FALSE) {
         TRUE ~ FALSE
       )
     )
-}
+
   
   
   # Generate linelist data
