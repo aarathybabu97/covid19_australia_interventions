@@ -85,9 +85,11 @@ saveRDS(
 
 
 # # 5. summary data approach
-# Uses nindss + commonwealth act + state summary of vic, nsw,qld,tasmania
+# load in commonwealth summary data and process it in reff model format
+# this is a not-so-temporary data stream
+# expect to change data stream again when select interview data becomes available
+source("R/assemble_notification_data.R")
 
-source("R/nndss_state_summary.R")
 
 
 # Archived older pipeline
