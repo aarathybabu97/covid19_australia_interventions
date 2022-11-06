@@ -101,5 +101,9 @@ saveRDS(data, "outputs/pre_loaded_reff_data_PCR_only.RDS")
 
 source("R/watermelon_plot_completion.R")
 
-write_local_cases(data, suffix = "_PCR_only_")
+ if (!dir.exists("outputs/PCR_only_local_cases")) {
+   dir.create("outputs/PCR_only_local_cases")
+ }
+
+write_local_cases(data, dir = "outputs/PCR_only_local_cases",suffix = "PCR_only")
 
