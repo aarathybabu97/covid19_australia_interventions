@@ -7796,7 +7796,7 @@ replace_linelist_bits_with_summary <- function(linelist = linelist,
 
 #plot linelist by confirmation date for quick check
 plot_linelist_by_confirmation_date <- function(linelist,
-                                               date_cutoff = Sys.Date() - months(1),
+                                               date_cutoff = max(linelist$date_confirmation) - months(1),
                                                selected_states = states) {
   
   linelist %>% filter(date_confirmation >= date_cutoff,
@@ -7805,8 +7805,25 @@ plot_linelist_by_confirmation_date <- function(linelist,
     group_by(state, date_confirmation,test_type) %>%
     summarise(cases = sum(cases, na.rm = TRUE)) %>%
     ungroup() %>% 
-    ggplot(aes(x = date_confirmation, y = cases, fill = test_type)) + 
-    geom_col(position = position_dodge2(width = 1, preserve = "single")) + facet_wrap(~state,scales = "free")
+    ggplot(aes(x = date_confirmation, 
+               y = cases, 
+               fill = test_type,
+               col = test_type)) + 
+    geom_col(position = position_dodge2(width = 1, preserve = "single")) + 
+    geom_smooth(data = linelist %>% 
+                  filter(date_confirmation >= max(linelist$date_confirmation) - weeks(2),
+                                           state %in% selected_states) %>% 
+                  mutate(cases = 1) %>%
+                  group_by(state, date_confirmation,test_type) %>%
+                  summarise(cases = sum(cases, na.rm = TRUE)) %>%
+                  ungroup() ,
+                aes(x = date_confirmation, 
+                    y = cases, 
+                    fill = test_type,
+                    col = test_type),
+                method = mgcv::gam,
+                formula = y ~ s(x, k = 10)) + 
+    facet_wrap(~state,scales = "free")
 }
 
 # convert imputed linelist into matrix of new infections by date and state
