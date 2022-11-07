@@ -35,8 +35,13 @@ linelist <- replace_linelist_bits_with_summary(linelist,
                                                start = as_date("2022-01-06"),
                                                end = as_date("2022-03-28"))
 
-#check
+#check if ACT is properly joined
 plot_linelist_by_confirmation_date(linelist = linelist, date_cutoff = "2022-01-01")
+
+
+#make watermelon style checking plot
+plot_linelist_by_confirmation_date(linelist = linelist)
+ggsave("outputs/figures/case_count_by_confirmation.png", bg = 'white',height = 5,width = 9)
 
 #use NSW part of the linelist to get delay cdfs for different test modes
 
