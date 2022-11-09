@@ -1537,7 +1537,8 @@ R0_prior <- function() {
 }
 
 plot_trend <- function(
-    simulations,
+    use_simulations = TRUE,
+    simulations = NULL,
     data,
     base_colour = grey(0.4),
     multistate = FALSE,
@@ -1550,17 +1551,24 @@ plot_trend <- function(
     max_date = data$dates$latest_mobility,
     min_date = NA,
     plot_voc = FALSE,
-    plot_vax = FALSE
+    plot_vax = FALSE,
+    summary_sim = NULL
 ) {
   
   if(is.na(min_date)){
     min_date = as.Date("2020-03-01")
   }
   
-  
-  mean <- colMeans(simulations)
-  ci_90 <- apply(simulations, 2, quantile, c(0.05, 0.95)) 
-  ci_50 <- apply(simulations, 2, quantile, c(0.25, 0.75))
+  if (use_simulations) {
+    mean <- colMeans(simulations)
+    ci_90 <- apply(simulations, 2, quantile, c(0.05, 0.95)) 
+    ci_50 <- apply(simulations, 2, quantile, c(0.25, 0.75))
+  } else {
+    mean <- summary_sim$mean
+    ci_90 <- rbind(summary_sim$ci_90_lo,summary_sim$ci_90_hi)
+    ci_50 <- rbind(summary_sim$ci_50_lo,summary_sim$ci_50_hi)
+  }
+
   
   if (multistate) {
     states <- rep(data$states, each = data$n_dates_project)
@@ -2998,6 +3006,26 @@ format_raw_survey_data <- function(file = NULL, wave = NULL) {
   
   write_csv(contacts,
             paste0("data/contacts/barometer/contact numbers wave ", wave, ".csv"))
+  
+  WFH <- raw %>%
+    select(state = S3,
+           date = StartDate,
+           working_situation = Q101) %>%
+    mutate(
+      state = case_when(state == "ACT" ~ "Australian Capital Territory",
+                        TRUE ~ state),
+      state = abbreviate_states(state)
+    ) %>%
+    filter(!is.na(state)) %>%
+    mutate(
+      date = as.character(date),
+      date = as.Date(date, format = "%Y%m%d"),
+      date = min(date)
+    ) %>%
+    count(state, date, working_situation) 
+  
+  write_csv(WFH,
+            paste0("data/work_from_home/working from home wave ", wave, ".csv"))
   
 }
 
@@ -7770,14 +7798,18 @@ replace_linelist_bits_with_summary <- function(linelist = linelist,
 plot_linelist_by_confirmation_date <- function(linelist,
                                                date_cutoff = max(linelist$date_confirmation) - months(1),
                                                selected_states = states,
-                                               plot_smoothed_trend = TRUE) {
+                                               plot_smoothed_trend = TRUE,
+                                               plot_moving_average = TRUE) {
   
-  conf_plot <- linelist %>% filter(date_confirmation >= date_cutoff,
-                                state %in% selected_states) %>% 
+  
+  plot_dat <- linelist %>% filter(date_confirmation >= date_cutoff,
+                               state %in% selected_states) %>% 
     mutate(cases = 1) %>%
     group_by(state, date_confirmation,test_type) %>%
     summarise(cases = sum(cases, na.rm = TRUE)) %>%
-    ungroup() %>% 
+    ungroup()
+  
+  conf_plot <- plot_dat %>% 
     ggplot(aes(x = date_confirmation, 
                y = cases, 
                fill = test_type,
@@ -7800,6 +7832,17 @@ plot_linelist_by_confirmation_date <- function(linelist,
                       col = test_type),
                   method = mgcv::gam,
                   formula = y ~ s(x, k = 10)) 
+  }
+  
+  if (plot_moving_average) {
+    conf_plot <- conf_plot + 
+      geom_line(data = plot_dat %>%
+                    group_by(state, test_type) %>% 
+                    arrange(date_confirmation) %>% 
+                    mutate(rolling_average = zoo::rollmean(cases, k = 7, fill = NA)),
+                  aes(x = date_confirmation, 
+                      y = rolling_average,
+                      col = test_type)) 
   }
   
   conf_plot
@@ -8421,6 +8464,19 @@ parse_doh_survey <- function(filename) {
       vars(starts_with("contacts_")),
       ~as.numeric(.)
     )
+  
+}
+
+# parse working from home data
+parse_all_wfh <- function(dir = "data/work_from_home/") {
+  
+  dir %>%
+    list.files(
+      pattern = ".csv$",
+      full.names = TRUE
+    ) %>%
+    lapply(read_csv) %>%
+    bind_rows()
   
 }
 
