@@ -5285,7 +5285,7 @@ get_qld_summary_data <- function(file = NULL,
   
   if (is.null(file)) {
     file <- list.files("~/not_synced/qld/",
-                       pattern = "UniMelbData *",
+                       pattern = "Uni Melb data *",
                        full.names = TRUE)
     
     all_data_dates<- parsedate::parse_date((file))%>%as.Date
@@ -5317,17 +5317,11 @@ get_qld_summary_data <- function(file = NULL,
     bind_rows(qld_legacy_rat,qld_legacy_pcr)
     
   } else {
-    file %>% read_xlsx(sheet = 4) %>% 
+    file %>% read_xlsx(sheet = 3) %>% 
       mutate(date = as.Date(CollectionDate, format =  "%d/%m/%Y"),
              test_type = case_when(
-               Lab_source  == "1_PCR" ~ "PCR",
-               Lab_source %in% c("2_Authorised RAT",
-                                 "4_Unverified RAT") ~ "RAT",
-               TRUE ~ "PCR" 
-               #this is in principle incorrect, but without the resolution of test
-               #source information these cases would likely have been classified
-               #as PCR in other jurisdictions, so for consistency sake we classify
-               #them as PCR too
+               ResolutionStatus  == "Confirmed" ~ "PCR",
+               ResolutionStatus %in% c("Probable") ~ "RAT"
              )) %>% 
       group_by(date,test_type) %>%
       mutate(cases = sum(N)) %>%
