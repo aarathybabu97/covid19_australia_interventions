@@ -80,7 +80,7 @@ rm(linelist_RAT,linelist_PCR)
 gc()
 
 saveRDS(linelist,"outputs/imputed_linelist.RDS")
-#linelist <- readRDS("outputs/commonwealth_ll_imputed.RDS")
+#linelist <- readRDS("outputs/imputed_linelist.RDS")
 
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = NULL,

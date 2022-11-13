@@ -7798,7 +7798,7 @@ replace_linelist_bits_with_summary <- function(linelist = linelist,
 plot_linelist_by_confirmation_date <- function(linelist,
                                                date_cutoff = max(linelist$date_confirmation) - months(1),
                                                selected_states = states,
-                                               plot_smoothed_trend = TRUE,
+                                               plot_smoothed_trend = FALSE,
                                                plot_moving_average = TRUE) {
   
   
@@ -7839,7 +7839,10 @@ plot_linelist_by_confirmation_date <- function(linelist,
       geom_line(data = plot_dat %>%
                     group_by(state, test_type) %>% 
                     arrange(date_confirmation) %>% 
-                    mutate(rolling_average = zoo::rollmean(cases, k = 7, fill = NA)),
+                    mutate(rolling_average = zoo::rollmean(cases, 
+                                                           k = 7, 
+                                                           fill = NA,
+                                                           align = "right")),
                   aes(x = date_confirmation, 
                       y = rolling_average,
                       col = test_type)) 
