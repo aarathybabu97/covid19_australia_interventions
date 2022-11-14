@@ -5281,7 +5281,7 @@ load_tas_count_data_new_format <- function(file) {
 
 
 get_qld_summary_data <- function(file = NULL,
-                                 legacy = TRUE) {
+                                 legacy = FALSE) {
   
   if (is.null(file)) {
     file <- list.files("~/not_synced/qld/",
@@ -5685,7 +5685,8 @@ reff_model_data <- function(
   immunity_effect_path = "outputs/vaccination_effect.RDS",
   ascertainment_level_for_immunity = NULL,
   impute_infection_with_CAR = FALSE,
-  PCR_only_states = c("NSW","VIC")
+  PCR_only_states = NULL,
+  state_date_lag = state_date_lag
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5761,7 +5762,9 @@ reff_model_data <- function(
     latest_date = linelist_date - 1,
     infection_dates = full_dates,
     states = states,
-    notification_delay_cdf = notification_delay_cdf
+    notification_delay_cdf = notification_delay_cdf,
+    adjust_for_lag = TRUE,
+    state_date_lag = state_date_lag
   )
   
   # subset to dates with reasonably high detection probabilities in some states
@@ -7475,8 +7478,8 @@ notification_delay_group <- function(date_confirmation, state) {
     stage == 2 & state == "VIC" ~ "VIC 1 (Jun14-Jul31)",
     stage == 3 & state == "VIC" ~ "VIC 2 (Aug1-Aug20)",
     stage == 4 & state == "VIC" ~ "VIC 3 (Aug21-Omicron)",
-    stage == 4 & state != "VIC" ~ "other states Jun14-Omicron",
-    TRUE ~ "Omicron"
+    stage > 1 & stage < 5 & state != "VIC" ~ "other states Jun14-Omicron",
+    stage == 5 ~ paste0(state," Omicron")
   )
   
   group
@@ -7485,7 +7488,8 @@ notification_delay_group <- function(date_confirmation, state) {
 
 # return a function to get the CDf of the notification delay distribution for a
 # given date and state
-get_notification_delay_cdf <- function(linelist) {
+get_notification_delay_cdf <- function(linelist,
+                                       use_nsw_delay = FALSE) {
   
   delay_data <- linelist %>%
     filter(
@@ -7524,6 +7528,11 @@ get_notification_delay_cdf <- function(linelist) {
     filter(id == 1) %>%
     select(group, ecdf)
   
+  #override other jurisdiction delays with NSW delay
+  if (use_nsw_delay) {
+    ecdfs$ecdf[grepl("* Omicron", ecdfs$group)] <- ecdfs$ecdf[ecdfs$group == "NSW Omicron"]
+  }
+  
   # return a function to compute the CDF of the delay distribution for that
   # state and those delays and dates
   function(delays, possible_onset_dates, states) {
@@ -7546,7 +7555,12 @@ get_notification_delay_cdf <- function(linelist) {
 }
 
 # return a date-by-state matrix of detection probabilities
-detection_probability_matrix <- function(latest_date, infection_dates, states, notification_delay_cdf) {
+detection_probability_matrix <- function(latest_date, 
+                                         infection_dates, 
+                                         states, 
+                                         notification_delay_cdf,
+                                         adjust_for_lag = FALSE,
+                                         state_date_lag = NULL) {
   
   n_dates <- length(infection_dates)
   n_states <- length(states)
@@ -7565,6 +7579,13 @@ detection_probability_matrix <- function(latest_date, infection_dates, states, n
     ncol = n_states
   )
   
+  if (adjust_for_lag) {
+    #adjust by last day of report lag
+    for (i in seq_along(states)) {
+      delays_mat[,i] <- delays_mat[,i] - state_date_lag$days_lag[state_date_lag$state == states[i]]
+    }
+  }
+
   states_mat <- matrix(
     states,
     nrow = n_dates,
