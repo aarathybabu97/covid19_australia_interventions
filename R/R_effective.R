@@ -12,31 +12,15 @@ sync_nndss()
 # prepare data for Reff modelling
 linelist <- readRDS("outputs/imputed_linelist.RDS")
 
-#old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
+
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = NULL,
                         start_date = as_date("2021-06-01"),
                         immunity_effect_path = "outputs/combined_effect_full.RDS",
                         ascertainment_level_for_immunity = 0.5,
-                        PCR_only_states = c("NSW","VIC"))
+                        PCR_only_states = NULL,
+                        compute_state_date_lag = TRUE)
                         
-
-#remove last x days from modelling for jurisdiction y if necessary
-data[["valid_mat"]][tail(which(data[["valid_mat"]][,"NT"]),3),"NT"] <- FALSE
-data[["valid_mat"]][tail(which(data[["valid_mat"]][,"WA"]),3),"WA"] <- FALSE
-
-# data[["valid_mat"]][c(479:480),"QLD"] <- FALSE
-# data[["valid_mat"]][c(479),"VIC"] <- FALSE
- #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
-# data[["detection_prob_mat"]][919:920,4] <- 0.93
-#reload data here to get the latest vaccine effect, which is typically computed after linelist
-
-#data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
-# #quick check if reff data is already loaded
-# if (length(data) != 12) {
-#   data <- reff_model_data() 
-#   saveRDS(data, "outputs/pre_loaded_reff_data.RDS")
-# }
 
 #check data date
 data$dates$linelist
@@ -121,7 +105,7 @@ system.time(
 # save the fitted model object
 saveRDS(refitted_model, "outputs/fitted_reff_only_model.RDS")
 # saveRDS(refitted_model, "outputs/fitted_full_reff_model.RDS")
-
+# refitted_model <- readRDS("outputs/fitted_reff_only_model.RDS")
 
 # # visual checks of model fit
 # plot_reff_checks(fitted_model)

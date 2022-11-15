@@ -107,7 +107,7 @@ saveRDS(linelist,"outputs/imputed_linelist.RDS")
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = NULL,
                         impute_infection_with_CAR = TRUE,
-                        state_date_lag = state_date_lag)
+                        compute_state_date_lag = TRUE)
 #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
 saveRDS(data, "outputs/pre_loaded_reff_data.RDS")
 #data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
@@ -119,20 +119,20 @@ write_local_cases(data)
 
 #make PCR only version - in dev
 
-
-data <- reff_model_data(linelist_raw = linelist %>% filter(test_type == "PCR"),
-                        notification_delay_cdf = NULL,
-                        impute_infection_with_CAR = TRUE,
-                        state_date_lag = state_date_lag)
-#data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
-saveRDS(data, "outputs/pre_loaded_reff_data_PCR_only.RDS")
-#data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
-
-source("R/watermelon_plot_completion.R")
-
- if (!dir.exists("outputs/PCR_only_local_cases")) {
-   dir.create("outputs/PCR_only_local_cases")
- }
-
-write_local_cases(data, dir = "outputs/PCR_only_local_cases",suffix = "PCR_only")
-
+# 
+# data <- reff_model_data(linelist_raw = linelist %>% filter(test_type == "PCR"),
+#                         notification_delay_cdf = NULL,
+#                         impute_infection_with_CAR = TRUE,
+#                         compute_state_date_lag = TRUE)
+# #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
+# saveRDS(data, "outputs/pre_loaded_reff_data_PCR_only.RDS")
+# #data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
+# 
+# source("R/watermelon_plot_completion.R")
+# 
+#  if (!dir.exists("outputs/PCR_only_local_cases")) {
+#    dir.create("outputs/PCR_only_local_cases")
+#  }
+# 
+# write_local_cases(data, dir = "outputs/PCR_only_local_cases",suffix = "PCR_only")
+# 

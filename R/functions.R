@@ -1537,7 +1537,6 @@ R0_prior <- function() {
 }
 
 plot_trend <- function(
-    use_simulations = TRUE,
     simulations = NULL,
     data,
     base_colour = grey(0.4),
@@ -1552,7 +1551,8 @@ plot_trend <- function(
     min_date = NA,
     plot_voc = FALSE,
     plot_vax = FALSE,
-    summary_sim = NULL
+    summary_sim = NULL,
+    use_simulations = TRUE
 ) {
   
   if(is.na(min_date)){
@@ -5686,7 +5686,7 @@ reff_model_data <- function(
   ascertainment_level_for_immunity = NULL,
   impute_infection_with_CAR = FALSE,
   PCR_only_states = NULL,
-  state_date_lag = state_date_lag
+  compute_state_date_lag = FALSE
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5758,14 +5758,37 @@ reff_model_data <- function(
   
   # get detection probabilities for these dates and states
   #renamed this completion prob to differentiate from case ascertainment
-  completion_prob_mat <- detection_probability_matrix(
-    latest_date = linelist_date - 1,
-    infection_dates = full_dates,
-    states = states,
-    notification_delay_cdf = notification_delay_cdf,
-    adjust_for_lag = TRUE,
-    state_date_lag = state_date_lag
-  )
+  
+  #reduce last day of detection by state specific lag if necessary
+  if (compute_state_date_lag) {
+    
+    #record the days of lag for each jurisdiction
+    state_date_lag <- linelist %>% 
+      group_by(state) %>% 
+      summarise(last_date = max(date_confirmation)) %>% 
+      ungroup() %>% 
+      mutate(days_lag = max(last_date) - last_date,
+             days_lag = as.numeric(days_lag))
+    
+    completion_prob_mat <- detection_probability_matrix(
+      latest_date = linelist_date - 1,
+      infection_dates = full_dates,
+      states = states,
+      notification_delay_cdf = notification_delay_cdf,
+      adjust_for_lag = TRUE,
+      state_date_lag = state_date_lag
+    )
+  } else {
+    
+    completion_prob_mat <- detection_probability_matrix(
+      latest_date = linelist_date - 1,
+      infection_dates = full_dates,
+      states = states,
+      notification_delay_cdf = notification_delay_cdf,
+      adjust_for_lag = FALSE)
+  }
+
+  
   
   # subset to dates with reasonably high detection probabilities in some states
   detectable <- completion_prob_mat >= detection_cutoff
