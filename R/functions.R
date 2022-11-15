@@ -1537,7 +1537,6 @@ R0_prior <- function() {
 }
 
 plot_trend <- function(
-    use_simulations = TRUE,
     simulations = NULL,
     data,
     base_colour = grey(0.4),
@@ -1552,7 +1551,8 @@ plot_trend <- function(
     min_date = NA,
     plot_voc = FALSE,
     plot_vax = FALSE,
-    summary_sim = NULL
+    summary_sim = NULL,
+    use_simulations = TRUE
 ) {
   
   if(is.na(min_date)){
@@ -5281,11 +5281,11 @@ load_tas_count_data_new_format <- function(file) {
 
 
 get_qld_summary_data <- function(file = NULL,
-                                 legacy = TRUE) {
+                                 legacy = FALSE) {
   
   if (is.null(file)) {
     file <- list.files("~/not_synced/qld/",
-                       pattern = "UniMelbData *",
+                       pattern = "Uni Melb data *",
                        full.names = TRUE)
     
     all_data_dates<- parsedate::parse_date((file))%>%as.Date
@@ -5317,17 +5317,11 @@ get_qld_summary_data <- function(file = NULL,
     bind_rows(qld_legacy_rat,qld_legacy_pcr)
     
   } else {
-    file %>% read_xlsx(sheet = 4) %>% 
+    file %>% read_xlsx(sheet = 3) %>% 
       mutate(date = as.Date(CollectionDate, format =  "%d/%m/%Y"),
              test_type = case_when(
-               Lab_source  == "1_PCR" ~ "PCR",
-               Lab_source %in% c("2_Authorised RAT",
-                                 "4_Unverified RAT") ~ "RAT",
-               TRUE ~ "PCR" 
-               #this is in principle incorrect, but without the resolution of test
-               #source information these cases would likely have been classified
-               #as PCR in other jurisdictions, so for consistency sake we classify
-               #them as PCR too
+               ResolutionStatus  == "Confirmed" ~ "PCR",
+               ResolutionStatus %in% c("Probable") ~ "RAT"
              )) %>% 
       group_by(date,test_type) %>%
       mutate(cases = sum(N)) %>%
@@ -5690,7 +5684,8 @@ reff_model_data <- function(
   immunity_effect_path = "outputs/vaccination_effect.RDS",
   ascertainment_level_for_immunity = NULL,
   impute_infection_with_CAR = FALSE,
-  PCR_only_states = c("NSW","VIC")
+  PCR_only_states = NULL,
+  state_specific_right_truncation = TRUE
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5762,12 +5757,37 @@ reff_model_data <- function(
   
   # get detection probabilities for these dates and states
   #renamed this completion prob to differentiate from case ascertainment
-  completion_prob_mat <- detection_probability_matrix(
-    latest_date = linelist_date - 1,
-    infection_dates = full_dates,
-    states = states,
-    notification_delay_cdf = notification_delay_cdf
-  )
+  
+  #reduce last day of detection by state specific lag if necessary
+  if (state_specific_right_truncation) {
+    
+    #record the days of lag for each jurisdiction
+    state_date_lag <- linelist %>% 
+      group_by(state) %>% 
+      summarise(last_date = max(date_confirmation)) %>% 
+      ungroup() %>% 
+      mutate(days_lag = max(last_date) - last_date,
+             days_lag = as.numeric(days_lag))
+    
+    completion_prob_mat <- detection_probability_matrix(
+      latest_date = linelist_date - 1,
+      infection_dates = full_dates,
+      states = states,
+      notification_delay_cdf = notification_delay_cdf,
+      adjust_for_lag = TRUE,
+      state_date_lag = state_date_lag
+    )
+  } else {
+    
+    completion_prob_mat <- detection_probability_matrix(
+      latest_date = linelist_date - 1,
+      infection_dates = full_dates,
+      states = states,
+      notification_delay_cdf = notification_delay_cdf,
+      adjust_for_lag = FALSE)
+  }
+
+  
   
   # subset to dates with reasonably high detection probabilities in some states
   detectable <- completion_prob_mat >= detection_cutoff
@@ -7509,8 +7529,8 @@ notification_delay_group <- function(date_confirmation, state) {
     stage == 2 & state == "VIC" ~ "VIC 1 (Jun14-Jul31)",
     stage == 3 & state == "VIC" ~ "VIC 2 (Aug1-Aug20)",
     stage == 4 & state == "VIC" ~ "VIC 3 (Aug21-Omicron)",
-    stage == 4 & state != "VIC" ~ "other states Jun14-Omicron",
-    TRUE ~ "Omicron"
+    stage > 1 & stage < 5 & state != "VIC" ~ "other states Jun14-Omicron",
+    stage == 5 ~ paste0(state," Omicron")
   )
   
   group
@@ -7519,7 +7539,8 @@ notification_delay_group <- function(date_confirmation, state) {
 
 # return a function to get the CDf of the notification delay distribution for a
 # given date and state
-get_notification_delay_cdf <- function(linelist) {
+get_notification_delay_cdf <- function(linelist,
+                                       use_nsw_delay = FALSE) {
   
   delay_data <- linelist %>%
     filter(
@@ -7558,6 +7579,11 @@ get_notification_delay_cdf <- function(linelist) {
     filter(id == 1) %>%
     select(group, ecdf)
   
+  #override other jurisdiction delays with NSW delay
+  if (use_nsw_delay) {
+    ecdfs$ecdf[grepl("* Omicron", ecdfs$group)] <- ecdfs$ecdf[ecdfs$group == "NSW Omicron"]
+  }
+  
   # return a function to compute the CDF of the delay distribution for that
   # state and those delays and dates
   function(delays, possible_onset_dates, states) {
@@ -7580,7 +7606,12 @@ get_notification_delay_cdf <- function(linelist) {
 }
 
 # return a date-by-state matrix of detection probabilities
-detection_probability_matrix <- function(latest_date, infection_dates, states, notification_delay_cdf) {
+detection_probability_matrix <- function(latest_date, 
+                                         infection_dates, 
+                                         states, 
+                                         notification_delay_cdf,
+                                         adjust_for_lag = FALSE,
+                                         state_date_lag = NULL) {
   
   n_dates <- length(infection_dates)
   n_states <- length(states)
@@ -7599,6 +7630,13 @@ detection_probability_matrix <- function(latest_date, infection_dates, states, n
     ncol = n_states
   )
   
+  if (adjust_for_lag) {
+    #adjust by last day of report lag
+    for (i in seq_along(states)) {
+      delays_mat[,i] <- delays_mat[,i] - state_date_lag$days_lag[state_date_lag$state == states[i]]
+    }
+  }
+
   states_mat <- matrix(
     states,
     nrow = n_dates,
@@ -7826,7 +7864,7 @@ replace_linelist_bits_with_summary <- function(linelist = linelist,
 plot_linelist_by_confirmation_date <- function(linelist,
                                                date_cutoff = max(linelist$date_confirmation) - months(1),
                                                selected_states = states,
-                                               plot_smoothed_trend = TRUE,
+                                               plot_smoothed_trend = FALSE,
                                                plot_moving_average = TRUE) {
   
   
@@ -7867,7 +7905,10 @@ plot_linelist_by_confirmation_date <- function(linelist,
       geom_line(data = plot_dat %>%
                     group_by(state, test_type) %>% 
                     arrange(date_confirmation) %>% 
-                    mutate(rolling_average = zoo::rollmean(cases, k = 7, fill = NA)),
+                    mutate(rolling_average = zoo::rollmean(cases, 
+                                                           k = 7, 
+                                                           fill = NA,
+                                                           align = "right")),
                   aes(x = date_confirmation, 
                       y = rolling_average,
                       col = test_type)) 

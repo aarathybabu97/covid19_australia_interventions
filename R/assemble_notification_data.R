@@ -43,20 +43,42 @@ plot_linelist_by_confirmation_date(linelist = linelist, date_cutoff = "2022-01-0
 plot_linelist_by_confirmation_date(linelist = linelist)
 ggsave("outputs/figures/case_count_by_confirmation.png", bg = 'white',height = 5,width = 9)
 
+
+#truncate for jurisdictions with incomplete reporting days (only PCR or RAT)
+linelist <- linelist %>% 
+  group_by(date_confirmation,state) %>% 
+  mutate(type_count = length(unique(test_type))) %>% 
+  ungroup() %>% 
+  filter(type_count == 2 | 
+         date_confirmation <= (max(linelist$date_confirmation) - weeks(1))) %>%
+  #the date filter is necessary to avoid removing pre RAT era cases
+  select(!type_count)
+#check
+plot_linelist_by_confirmation_date(linelist = linelist)
+#record the days of lag for each jurisdiction
+state_date_lag <- linelist %>% 
+  group_by(state) %>% 
+  summarise(last_date = max(date_confirmation)) %>% 
+  ungroup() %>% 
+  mutate(days_lag = max(last_date) - last_date,
+         days_lag = as.numeric(days_lag))
+
+
+
 #use NSW part of the linelist to get delay cdfs for different test modes
 
 #cut off date at the beginning of RAT reporting
 delay_to_consider_date_cutoff <- as_date("2022-01-06")
 
 RAT_cdf <- get_notification_delay_cdf(linelist = linelist %>% 
-                                        filter(state == "NSW",
-                                               date_confirmation >= delay_to_consider_date_cutoff,
-                                               test_type == "RAT"))
+                                        filter(date_confirmation >= delay_to_consider_date_cutoff,
+                                               test_type == "RAT"),
+                                      use_nsw_delay = TRUE)
 
 PCR_cdf <- get_notification_delay_cdf(linelist = linelist %>% 
-                                        filter(state == "NSW",
-                                               date_confirmation >= delay_to_consider_date_cutoff,
-                                               test_type == "PCR"))
+                                        filter(date_confirmation >= delay_to_consider_date_cutoff,
+                                               test_type == "PCR"),
+                                      use_nsw_delay = TRUE)
 
 #impute onsets separately and then put together, not the most efficient approach
 #but works better with legacy code
@@ -80,11 +102,12 @@ rm(linelist_RAT,linelist_PCR)
 gc()
 
 saveRDS(linelist,"outputs/imputed_linelist.RDS")
-#linelist <- readRDS("outputs/commonwealth_ll_imputed.RDS")
+#linelist <- readRDS("outputs/imputed_linelist.RDS")
 
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = NULL,
-                        impute_infection_with_CAR = TRUE)
+                        impute_infection_with_CAR = TRUE,
+                        state_specific_right_truncation = TRUE)
 #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
 saveRDS(data, "outputs/pre_loaded_reff_data.RDS")
 #data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
@@ -96,19 +119,20 @@ write_local_cases(data)
 
 #make PCR only version - in dev
 
-
-data <- reff_model_data(linelist_raw = linelist %>% filter(test_type == "PCR"),
-                        notification_delay_cdf = NULL,
-                        impute_infection_with_CAR = TRUE)
-#data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
-saveRDS(data, "outputs/pre_loaded_reff_data_PCR_only.RDS")
-#data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
-
-source("R/watermelon_plot_completion.R")
-
- if (!dir.exists("outputs/PCR_only_local_cases")) {
-   dir.create("outputs/PCR_only_local_cases")
- }
-
-write_local_cases(data, dir = "outputs/PCR_only_local_cases",suffix = "PCR_only")
-
+# 
+# data <- reff_model_data(linelist_raw = linelist %>% filter(test_type == "PCR"),
+#                         notification_delay_cdf = NULL,
+#                         impute_infection_with_CAR = TRUE,
+#                         state_specific_right_truncation = TRUE)
+# #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
+# saveRDS(data, "outputs/pre_loaded_reff_data_PCR_only.RDS")
+# #data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
+# 
+# source("R/watermelon_plot_completion.R")
+# 
+#  if (!dir.exists("outputs/PCR_only_local_cases")) {
+#    dir.create("outputs/PCR_only_local_cases")
+#  }
+# 
+# write_local_cases(data, dir = "outputs/PCR_only_local_cases",suffix = "PCR_only")
+# 
