@@ -19,7 +19,7 @@ data <- reff_model_data(linelist_raw = linelist,
                         immunity_effect_path = "outputs/combined_effect_full.RDS",
                         ascertainment_level_for_immunity = 0.5,
                         PCR_only_states = NULL,
-                        compute_state_date_lag = TRUE)
+                        state_specific_right_truncation = TRUE)
                         
 
 #check data date

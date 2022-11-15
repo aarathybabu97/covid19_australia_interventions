@@ -5686,7 +5686,7 @@ reff_model_data <- function(
   ascertainment_level_for_immunity = NULL,
   impute_infection_with_CAR = FALSE,
   PCR_only_states = NULL,
-  compute_state_date_lag = FALSE
+  state_specific_right_truncation = TRUE
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5760,7 +5760,7 @@ reff_model_data <- function(
   #renamed this completion prob to differentiate from case ascertainment
   
   #reduce last day of detection by state specific lag if necessary
-  if (compute_state_date_lag) {
+  if (state_specific_right_truncation) {
     
     #record the days of lag for each jurisdiction
     state_date_lag <- linelist %>% 

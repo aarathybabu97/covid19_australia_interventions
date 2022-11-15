@@ -107,7 +107,7 @@ saveRDS(linelist,"outputs/imputed_linelist.RDS")
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = NULL,
                         impute_infection_with_CAR = TRUE,
-                        compute_state_date_lag = TRUE)
+                        state_specific_right_truncation = TRUE)
 #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
 saveRDS(data, "outputs/pre_loaded_reff_data.RDS")
 #data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
@@ -123,7 +123,7 @@ write_local_cases(data)
 # data <- reff_model_data(linelist_raw = linelist %>% filter(test_type == "PCR"),
 #                         notification_delay_cdf = NULL,
 #                         impute_infection_with_CAR = TRUE,
-#                         compute_state_date_lag = TRUE)
+#                         state_specific_right_truncation = TRUE)
 # #data[["valid_mat"]][c(919,920),"QLD"] <- FALSE
 # saveRDS(data, "outputs/pre_loaded_reff_data_PCR_only.RDS")
 # #data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
