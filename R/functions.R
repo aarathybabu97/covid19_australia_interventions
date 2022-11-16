@@ -5281,15 +5281,20 @@ load_tas_count_data_new_format <- function(file) {
 
 
 get_qld_summary_data <- function(file = NULL,
+                                 date_in_file_name = FALSE,
                                  legacy = FALSE) {
   
   if (is.null(file)) {
-    file <- list.files("~/not_synced/qld/",
-                       pattern = "Uni Melb data *",
-                       full.names = TRUE)
-    
-    all_data_dates<- parsedate::parse_date((file))%>%as.Date
-    file<- file[which.max(all_data_dates)]
+    if (date_in_file_name) {
+      file <- list.files("~/not_synced/qld/",
+                         pattern = "Uni Melb data *",
+                         full.names = TRUE)
+      
+      all_data_dates<- parsedate::parse_date((file))%>%as.Date
+      file<- file[which.max(all_data_dates)]
+    } else {
+      file <- "~/not_synced/qld/Uni Melb data.xlsx"
+    }
   }
   
   if (legacy) {
@@ -5304,7 +5309,7 @@ get_qld_summary_data <- function(file = NULL,
       ungroup() %>%
       mutate(state = "QLD", test_type = "RAT") -> qld_legacy_rat
     
-    file %>% read_xlsx(sheet = 3) %>% 
+    file %>% read_xlsx(sheet = 1) %>% 
       mutate(date = as.Date(CollectionDate, format =  "%d/%m/%Y")) %>% 
       group_by(date) %>%
       mutate(cases = sum(N)) %>%
@@ -5318,6 +5323,7 @@ get_qld_summary_data <- function(file = NULL,
     
   } else {
     file %>% read_xlsx(sheet = 3) %>% 
+      rename_with(~gsub(" ", "", .x, fixed = TRUE)) %>% 
       mutate(date = as.Date(CollectionDate, format =  "%d/%m/%Y"),
              test_type = case_when(
                ResolutionStatus  == "Confirmed" ~ "PCR",
