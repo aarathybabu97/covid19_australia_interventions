@@ -33,6 +33,7 @@ data$dates$earliest
 # local cases data for the Robs
 
 write_reff_key_dates(data)
+gc()
 #write_local_cases(data)
 
 # format and write out any new linelists to the past_cases folder for Rob H

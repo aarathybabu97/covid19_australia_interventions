@@ -7348,11 +7348,16 @@ fit_reff_model <- function(data, max_tries = 2,
 
 write_reff_key_dates <- function(model_data, dir = "outputs/") {
   # save these dates for Freya and Rob to check
+  fitted_macro_model <- readRDS("~/covid19_australia_interventions/outputs/fitted_macro_model.RDS")
+  line_df_micro<- readRDS("outputs/micro_plotting_data.RDS")[["line_df"]]
+  
   tibble(
     linelist_date = model_data$dates$linelist,
     latest_infection_date = model_data$dates$latest_infection,
     latest_reff_date = model_data$dates$latest_mobility,
-    forecast_reff_change_date = model_data$dates$latest_mobility + 1
+    forecast_reff_change_date = model_data$dates$latest_mobility + 1,
+    micro_last_date= max(line_df_micro$date),
+    macro_last_date=max(fitted_macro_model$data$contacts$date)
   ) %>%
     write_csv(
       file.path(dir, "output_dates.csv")
