@@ -257,7 +257,7 @@ sry <- pred_plot_null %>%
 # Rescale it with this tweaking parameter to roughly match the durations
 
 # slim down dataframe to get independent estimates for surveys
-survey_points <- fitted_model$data$contacts %>%
+survey_points <- data$contacts %>%
   group_by(state, wave_date) %>%
   summarise(
     n = n(),
@@ -296,8 +296,8 @@ holiday_lines <- holiday_dates() %>%
   )
 
 type <- 1
-states <- unique(fitted_model$data$location_change_trends$state)
-dates <- unique(fitted_model$data$location_change_trends$date)
+states <- unique(data$location_change_trends$state)
+dates <- unique(data$location_change_trends$date)
 n_states <- length(states)
 
 # mock up data object for plotting
