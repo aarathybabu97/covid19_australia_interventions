@@ -3287,6 +3287,164 @@ macrodistancing_null <- function(data, log_fraction_weekly_contacts_mean) {
   
 }
 
+# macrodistancing model rewritten as mgcv::gam
+fit_contact_survey_gam <- function(
+  fit_dat,
+  pred_dat,
+  date_num_spline_base = -1
+) {
+  
+  #don't fit intervention if no data
+  if (anyNA(fit_dat$intervention_stage)) {
+    m <- mgcv::gam(data = fit_dat,
+                   formula = contact_num ~ # 
+                     # smooth variations in mobility
+                     s(date_num, k = date_num_spline_base, bs="tp") +
+                     
+                     # step changes around intervention impositions
+                     #intervention_stage +
+                     
+                     # # random effect on holidays (different for each holiday, but shrunk
+                     # # to an average holiday effect which used to predict into future)
+                     is_a_holiday +
+                     #s(holiday, bs = "re") +
+                     # 
+                     # # constant effect for school holidays
+                     is_a_school_holiday - 1, #+
+                   
+                   # day of the week effect
+                   #dow, #+
+                   #Day of year effect
+                   #s(doy, bs = "cc",k=50),
+                   select = TRUE,
+                   #,
+                   family = mgcv::nb(),#gaussian(discrete_lognormal_for_gam()),#stats::poisson()
+                   gamma = 0.2,
+                   #optimizer = "perf",
+                   control = list(irls.reg=1, maxit = 500))#,
+    #optimizer = c("outer","optim"))
+  } else {
+    m <- mgcv::gam(data = fit_dat,
+                   formula = contact_num ~ # 
+                     # smooth variations in mobility
+                     s(date_num, k = date_num_spline_base, bs="tp") +
+                     
+                     # step changes around intervention impositions
+                     intervention_stage +
+                     
+                     # # random effect on holidays (different for each holiday, but shrunk
+                     # # to an average holiday effect which used to predict into future)
+                     is_a_holiday +
+                     #s(holiday, bs = "re") +
+                     # 
+                     # # constant effect for school holidays
+                     is_a_school_holiday - 1, #+
+                   
+                   # day of the week effect
+                   #dow, #+
+                   #Day of year effect
+                   #s(doy, bs = "cc",k=50),
+                   select = TRUE,
+                   #,
+                   family = mgcv::nb(),#gaussian(discrete_lognormal_for_gam()),#stats::poisson()
+                   gamma = 0.2,
+                   #optimizer = "perf",
+                   control = list(irls.reg=1, maxit = 500))#,
+    #optimizer = c("outer","optim"))
+    
+    #if any intervention stage is too early to be included in fit_dat, pretend
+    #it's the same as the start of fit dat
+    pred_dat$intervention_stage[!(pred_dat$intervention_stage %in% unique(fit_dat$intervention_stage))] <- unique(fit_dat$intervention_stage)[1]
+  }
+  
+  
+  #remove holiday in pred_dat if nonexistent in fit dat, not used because not
+  #using holiday specific splines not sure why dplyr didn't work here
+  #pred_dat$holiday[!(pred_dat$holiday %in% unique(fit_dat$holiday))] <- "none"
+  
+  
+  pred <- predict(
+    object = m,
+    newdata = pred_dat,
+    se.fit = TRUE,
+    type = "link"
+  )
+  
+  quantile95 <- qnorm(0.95)
+  quantile75 <- qnorm(0.75)
+  ci_90_hi <- pred$fit + (quantile95 * pred$se.fit)
+  ci_90_lo <- pred$fit - (quantile95 * pred$se.fit)
+  ci_50_hi <- pred$fit + (quantile75 * pred$se.fit)
+  ci_50_lo <- pred$fit - (quantile75 * pred$se.fit)
+  #fitted <- pred$fit
+  
+  fitted <- m$family$linkinv(pred$fit) 
+  ci_90_hi <- m$family$linkinv(ci_90_hi) 
+  ci_90_lo <- m$family$linkinv(ci_90_lo) 
+  ci_50_hi <- m$family$linkinv(ci_50_hi) 
+  ci_50_lo <- m$family$linkinv(ci_50_lo) 
+  
+  
+  
+  tibble(
+    date = pred_dat$date,
+    mean = fitted,
+    ci_90_lo,
+    ci_50_lo,
+    ci_50_hi,
+    ci_90_hi
+  )
+  
+}
+
+# gam version of macrodistancing null
+fit_contact_survey_null_gam <- function(
+  fit_dat,
+  pred_dat
+) {
+  
+  #fit each survey event as independent category
+  fit_dat <- fit_dat %>% mutate(wave_date = as.factor(wave_date))
+  m <- mgcv::gam(data = fit_dat,
+                 formula = contact_num ~ wave_date - 1,
+                 select = TRUE,
+                 family = mgcv::nb(),#gaussian(discrete_lognormal_for_gam()),#stats::poisson()
+                 gamma = 1,
+                 optimizer = "perf",
+                 control = list(irls.reg=0.5, maxit = 500))
+  
+  pred_dat <- pred_dat %>% filter(!(is.na(wave_date)))
+  
+  
+  pred <- predict(
+    object = m,
+    newdata = pred_dat,
+    se.fit = TRUE,
+    type = "link"
+  )
+  
+  quantile_hi <- qnorm(0.975)
+  ci_hi <- pred$fit + (quantile_hi * pred$se.fit)
+  ci_lo <- pred$fit - (quantile_hi * pred$se.fit)
+  
+  #fitted <- pred$fit
+  
+  fitted <- m$family$linkinv(pred$fit) 
+  ci_hi <- m$family$linkinv(ci_hi) 
+  ci_lo <- m$family$linkinv(ci_lo) 
+  
+  
+  
+  tibble(
+    wave_date = pred_dat$wave_date,
+    mean = fitted,
+    ci_hi,
+    ci_lo
+  )
+  
+}
+
+
 # take a vector greta array correpsonding to dates and states and convert to
 # date-by-state wide format
 greta_long_to_date_state <- function(long, dates, states) {
