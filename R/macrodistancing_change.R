@@ -192,6 +192,7 @@ pred_trend <- mapply(
   FUN = fit_contact_survey_gam,
   fit_dat = df_mic$fit_dat,
   pred_dat = df_mic$pred_dat,
+  date_num_spline_base = 40,
   SIMPLIFY = FALSE
 )
 

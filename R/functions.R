@@ -1590,12 +1590,26 @@ plot_trend <- function(
     df <- df[keep_only_rows, ]
   }
   
-  df <- df %>%
-    filter(
-      date >= min_date,
-      date <= max_date
-    ) %>%
-    mutate(type = "Nowcast")
+  
+  if (length(max_date) == 1) {
+    df <- df %>%
+      filter(
+        date >= min_date,
+        date <= max_date
+      ) %>%
+      mutate(type = "Nowcast")
+  } else {
+    df <- df %>%
+      filter(
+        date >= min_date
+      ) %>% 
+      left_join(tibble(state = data$states,
+                       max_date_per_state = max_date),
+                by = "state") %>% 
+      filter(date <= max_date_per_state) %>% 
+      select(-max_date_per_state) %>% 
+      mutate(type = "Nowcast")
+  }
   
   
   if (length(unique(df$date)) >= 200){
@@ -5958,7 +5972,7 @@ reff_model_data <- function(
   detectable <- completion_prob_mat >= detection_cutoff
   
   # the last date with infection data we include
-  last_detectable_idx <- which(!apply(detectable, 1, any))[1]
+  last_detectable_idx <- apply(detectable, 2, sum)
   latest_infection_date <- full_dates[ifelse(is.na(last_detectable_idx), length(full_dates), last_detectable_idx)]
   
   if (impute_infection_with_CAR) {
@@ -6981,7 +6995,7 @@ reff_plotting <- function(
   }
   
   if(is.na(min_date)){
-    min_date <- max_date %m-% months(6)
+    min_date <- max(max_date) %m-% months(6)
   }
   
   # reformat case data for plotting (C1 and C12)
@@ -7020,7 +7034,7 @@ reff_plotting <- function(
     full_join(
       expand_grid(
         state = fitted_model$data$states,
-        date = seq(min_date, max_date, by = 1),
+        date = seq(min_date, max(max_date), by = 1),
       )
     ) %>%
     mutate(
@@ -7073,12 +7087,14 @@ reff_plotting <- function(
     ylab("Deviation")
   
   if (mobility_extrapolation_rectangle) {
-    p <- p + annotate("rect",
-                      xmin = fitted_model$data$dates$latest_infection,
-                      xmax = fitted_model$data$dates$latest_mobility,
-                      ymin = -Inf,
-                      ymax = Inf,
-                      fill = grey(0.5), alpha = 0.1)
+    p <- p + geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
+                       data = tibble(xmin = fitted_model$data$dates$latest_infection,
+                                     xmax = fitted_model$data$dates$latest_mobility,
+                                     ymin = -Inf,
+                                     ymax = Inf,
+                                     state = fitted_model$data$state),
+                       fill = grey(0.5), alpha = 0.1, 
+                       inherit.aes = FALSE)
     
   }
   
@@ -7248,12 +7264,14 @@ reff_plotting <- function(
     ylab(expression(R["eff"]~from~"locally-acquired"~cases))
   
   if (mobility_extrapolation_rectangle) {
-    p <- p + annotate("rect",
-                      xmin = fitted_model$data$dates$latest_infection,
-                      xmax = fitted_model$data$dates$latest_mobility,
-                      ymin = -Inf,
-                      ymax = Inf,
-                      fill = grey(0.5), alpha = 0.1)
+    p <- p + geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
+                       data = tibble(xmin = fitted_model$data$dates$latest_infection,
+                                     xmax = fitted_model$data$dates$latest_mobility,
+                                     ymin = -Inf,
+                                     ymax = Inf,
+                                     state = fitted_model$data$state),
+                       fill = grey(0.5), alpha = 0.1, 
+                       inherit.aes = FALSE)
     
   }
   
@@ -7278,12 +7296,14 @@ reff_plotting <- function(
     ylab(expression(R["eff"]~from~"locally-acquired"~cases))
   
   if (mobility_extrapolation_rectangle) {
-    p <- p + annotate("rect",
-                      xmin = fitted_model$data$dates$latest_infection,
-                      xmax = fitted_model$data$dates$latest_mobility,
-                      ymin = -Inf,
-                      ymax = Inf,
-                      fill = grey(0.5), alpha = 0.1)
+    p <- p + geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
+                       data = tibble(xmin = fitted_model$data$dates$latest_infection,
+                                     xmax = fitted_model$data$dates$latest_mobility,
+                                     ymin = -Inf,
+                                     ymax = Inf,
+                                     state = fitted_model$data$state),
+                       fill = grey(0.5), alpha = 0.1, 
+                       inherit.aes = FALSE)
     
   }
   
@@ -7310,12 +7330,14 @@ reff_plotting <- function(
     ylab("Deviation")
   
   if (mobility_extrapolation_rectangle) {
-    p <- p + annotate("rect",
-                      xmin = fitted_model$data$dates$latest_infection,
-                      xmax = fitted_model$data$dates$latest_mobility,
-                      ymin = -Inf,
-                      ymax = Inf,
-                      fill = grey(0.5), alpha = 0.1)
+    p <- p + geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
+                       data = tibble(xmin = fitted_model$data$dates$latest_infection,
+                                     xmax = fitted_model$data$dates$latest_mobility,
+                                     ymin = -Inf,
+                                     ymax = Inf,
+                                     state = fitted_model$data$state),
+                       fill = grey(0.5), alpha = 0.1, 
+                       inherit.aes = FALSE)
     
   }
   
@@ -7511,7 +7533,8 @@ write_reff_key_dates <- function(model_data, dir = "outputs/") {
     linelist_date = model_data$dates$linelist,
     latest_infection_date = model_data$dates$latest_infection,
     latest_reff_date = model_data$dates$latest_mobility,
-    forecast_reff_change_date = model_data$dates$latest_mobility + 1
+    forecast_reff_change_date = model_data$dates$latest_mobility + 1,
+    state = model_data$state
   ) %>%
     write_csv(
       file.path(dir, "output_dates.csv")
