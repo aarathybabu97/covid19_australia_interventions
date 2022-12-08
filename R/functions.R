@@ -5310,7 +5310,9 @@ get_qld_summary_data <- function(file = NULL,
       mutate(state = "QLD", test_type = "RAT") -> qld_legacy_rat
     
     file %>% read_xlsx(sheet = 1) %>% 
-      mutate(date = as.Date(CollectionDate, format =  "%d/%m/%Y")) %>% 
+      # mutate(CollectionDate = as.Date(CollectionDate, format =  "%d/%m/%Y")) %>% 
+      # mutate(date = CollectionDate+1)%>%
+      mutate(date = as.Date(CollectionDate, format =  "%d/%m/%Y"))%>%
       group_by(date) %>%
       mutate(cases = sum(N)) %>%
       filter(date >= "2022-01-06") %>%
@@ -5322,17 +5324,20 @@ get_qld_summary_data <- function(file = NULL,
     bind_rows(qld_legacy_rat,qld_legacy_pcr)
     
   } else {
-    file %>% read_xlsx(sheet = 3) %>% 
-      rename_with(~gsub(" ", "", .x, fixed = TRUE)) %>% 
-      mutate(date = as.Date(CollectionDate, format =  "%d/%m/%Y"),
-             test_type = case_when(
-               ResolutionStatus  == "Confirmed" ~ "PCR",
-               ResolutionStatus %in% c("Probable") ~ "RAT"
-             )) %>% 
-      group_by(date,test_type) %>%
+   file %>% read_xlsx(sheet = 3) %>%
+      rename_with( ~ gsub(" ", "", .x, fixed = TRUE)) %>%
+      mutate(CollectionDate = as.Date(CollectionDate, format =  "%d/%m/%Y")) %>%
+      mutate(test_type = case_when(
+        ResolutionStatus  == "Confirmed" ~ "PCR",
+        ResolutionStatus %in% c("Probable") ~ "RAT"
+      )) %>%
+      mutate(date=as.Date(NotificationDate, format =  "%d/%m/%Y"))%>%
+      # mutate(date = case_when(test_type == "PCR" ~ as.Date(CollectionDate + 1),
+      #        test_type == "RAT" ~ as.Date(CollectionDate))) %>%
+      group_by(date, test_type) %>%
       mutate(cases = sum(N)) %>%
       filter(date >= "2022-01-06") %>%
-      select(date, cases, test_type) %>% 
+      select(date, cases, test_type) %>%
       distinct(date, .keep_all = TRUE) %>%
       ungroup() %>%
       mutate(state = "QLD") 
