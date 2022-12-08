@@ -5481,7 +5481,7 @@ get_qld_summary_data <- function(file = NULL,
       ungroup() %>%
       mutate(state = "QLD", test_type = "RAT") -> qld_legacy_rat
     
-    file %>% read_xlsx(sheet = 3) %>% 
+    file %>% read_xlsx(sheet = 1) %>% 
       mutate(date = as.Date(CollectionDate, format =  "%d/%m/%Y")) %>% 
       group_by(date) %>%
       mutate(cases = sum(N)) %>%
@@ -5496,11 +5496,12 @@ get_qld_summary_data <- function(file = NULL,
   } else {
     file %>% read_xlsx(sheet = 3) %>% 
       rename_with(~gsub(" ", "", .x, fixed = TRUE)) %>% 
-      mutate(date = as.Date(CollectionDate, format =  "%d/%m/%Y"),
+      mutate(CollectionDate = as.Date(CollectionDate, format =  "%d/%m/%Y"),
              test_type = case_when(
                ResolutionStatus  == "Confirmed" ~ "PCR",
                ResolutionStatus %in% c("Probable") ~ "RAT"
              )) %>% 
+      mutate(date=as.Date(NotificationDate, format =  "%d/%m/%Y"))%>%
       group_by(date,test_type) %>%
       mutate(cases = sum(N)) %>%
       filter(date >= "2022-01-06") %>%
@@ -7529,11 +7530,16 @@ fit_reff_model <- function(data, max_tries = 2,
 
 write_reff_key_dates <- function(model_data, dir = "outputs/") {
   # save these dates for Freya and Rob to check
+  fitted_macro_model <- readRDS("~/covid19_australia_interventions/outputs/fitted_macro_model.RDS")
+  line_df_micro<- readRDS("outputs/micro_plotting_data.RDS")[["line_df"]]
+  
   tibble(
     linelist_date = model_data$dates$linelist,
     latest_infection_date = model_data$dates$latest_infection,
     latest_reff_date = model_data$dates$latest_mobility,
     forecast_reff_change_date = model_data$dates$latest_mobility + 1,
+    micro_last_date= max(line_df_micro$date),
+    macro_last_date=max(fitted_macro_model$data$contacts$date),
     state = model_data$state
   ) %>%
     write_csv(
