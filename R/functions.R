@@ -7082,7 +7082,7 @@ reff_plotting <- function(
                   projection_at = projection_date,
                   ylim = NULL,
                   ybreaks = c(-5, 5),
-                  plot_voc = TRUE) + 
+                  plot_voc = FALSE) + 
     ggtitle(label = "Log ratio of local-to-local transmission and transmission potential",
             subtitle = expression(Log~ratio~of~R["eff"]~and~transmission~potential)) +
     ylab("Deviation")
@@ -7117,7 +7117,7 @@ reff_plotting <- function(
              projection_at = projection_date,
              ylim = c(0, 8),
              intervention_at = interventions(),
-             plot_voc = TRUE,
+             plot_voc = FALSE,
              plot_vax = TRUE
   ) + 
     ggtitle(label = "Impact of vaccination",
@@ -7137,7 +7137,7 @@ reff_plotting <- function(
     intervention_at = interventions(),
     base_colour = green,
     projection_at = projection_date,
-    plot_voc = TRUE,
+    plot_voc = FALSE,
     plot_vax = TRUE
   ) + 
     ggtitle(label = "Impact of social distancing only",
@@ -7154,7 +7154,7 @@ reff_plotting <- function(
              multistate = TRUE,
              base_colour = purple,
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact of micro-distancing",
             subtitle = expression(R["eff"]~"if"~only~"micro-distancing"~behaviour~had~changed)) +
     ylab(expression(R["eff"]~component))
@@ -7169,7 +7169,7 @@ reff_plotting <- function(
              multistate = TRUE,
              base_colour = blue,
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact of macro-distancing",
             subtitle = expression(R["eff"]~"if"~only~"macro-distancing"~behaviour~had~changed)) +
     ylab(expression(R["eff"]~component))
@@ -7184,7 +7184,7 @@ reff_plotting <- function(
              multistate = TRUE,
              base_colour = yellow,
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact of improved surveillance",
             subtitle = expression(R["eff"]~"if"~only~surveillance~effectiveness~had~changed)) +
     ylab(expression(R["eff"]~component))
@@ -7198,7 +7198,7 @@ reff_plotting <- function(
              multistate = TRUE,
              base_colour = purple,
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact contract tracing isolation",
             subtitle = expression(R["eff"]~"if"~only~extra~isolation~had~changed)) +
     ylab(expression(R["eff"]~component))
@@ -7212,7 +7212,7 @@ reff_plotting <- function(
              multistate = TRUE,
              base_colour = "Coral",
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact of TTIQ",
             subtitle = expression(R["eff"]~"if"~only~TTIQ~had~changed)) +
     ylab(expression(R["eff"]~component))
@@ -7227,7 +7227,7 @@ reff_plotting <- function(
              multistate = TRUE,
              base_colour = green,
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact of social distancing & vaccination",
             subtitle = expression(Component~of~R["eff"]~due~to~social~distancing~and~vaccination)) +
     ylab(expression(R["eff"]~component))
@@ -7243,7 +7243,7 @@ reff_plotting <- function(
              ylim = c(0, 0.4),
              intervention_at = quarantine_dates(),
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact of quarantine of overseas arrivals",
             subtitle = expression(Component~of~R["eff"]~due~to~quarantine~of~overseas~arrivals)) +
     ylab(expression(R["eff"]~component))
@@ -7259,7 +7259,7 @@ reff_plotting <- function(
                   base_colour = green,
                   ylim = c(0, 4),
                   projection_at = projection_date,
-                  plot_voc = TRUE) +
+                  plot_voc = FALSE) +
     ggtitle(label = "Local to local transmission potential",
             subtitle = "Average across active cases") +
     ylab(expression(R["eff"]~from~"locally-acquired"~cases))
@@ -7291,7 +7291,7 @@ reff_plotting <- function(
                   base_colour = green,
                   ylim = c(0, 2),
                   projection_at = projection_date,
-                  plot_voc = TRUE) +
+                  plot_voc = FALSE) +
     ggtitle(label = "Local to local transmission potential",
             subtitle = "Average across active cases") +
     ylab(expression(R["eff"]~from~"locally-acquired"~cases))
@@ -7325,7 +7325,7 @@ reff_plotting <- function(
                   projection_at = projection_date,
                   ylim = NULL,
                   ybreaks = c(-2, 1),
-                  plot_voc = TRUE) + 
+                  plot_voc = FALSE) + 
     ggtitle(label = "Short-term variation in local to local transmission rates",
             subtitle = expression(Deviation~from~log(R["eff"])~of~"local-local"~transmission)) +
     ylab("Deviation")
